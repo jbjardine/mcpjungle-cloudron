@@ -22,4 +22,5 @@ RUN chmod +x /app/code/start.sh
 # Cloudron expects the app to listen on httpPort (8080)
 EXPOSE 8080
 
+ENTRYPOINT []
 CMD ["/app/code/start.sh"]
