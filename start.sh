@@ -1,10 +1,11 @@
 #!/bin/bash
-set -u
+set -euo pipefail
 
 echo "==> MCPJungle Cloudron App starting..."
-echo "==> Filesystem check:"
-ls -la /app/data/ 2>&1 || echo "==> /app/data not accessible"
-mount | grep /app/data || echo "==> no mount for /app/data"
+
+# /app/data is auto-mounted writable by Cloudron (with cloudron/base)
+mkdir -p /app/data/credentials
+chown -R cloudron:cloudron /app/data
 
 # Cloudron provides PostgreSQL addon env vars
 export DATABASE_URL="${CLOUDRON_POSTGRESQL_URL}"
@@ -15,14 +16,17 @@ export SERVER_MODE="${SERVER_MODE:-development}"
 # Disable OpenTelemetry by default
 export OTEL_ENABLED="${OTEL_ENABLED:-false}"
 
-# Timeout for MCP server init
-export MCP_SERVER_INIT_REQ_TIMEOUT_SEC="${MCP_SERVER_INIT_REQ_TIMEOUT_SEC:-30}"
+# Timeout for MCP server init (60s to give uvx time to download packages)
+export MCP_SERVER_INIT_REQ_TIMEOUT_SEC="${MCP_SERVER_INIT_REQ_TIMEOUT_SEC:-60}"
 
-# Persistent credentials directory (don't crash if fails)
-mkdir -p /app/data/credentials 2>/dev/null || echo "==> WARN: could not create /app/data/credentials"
+# Make uv/uvx tools accessible
+export PATH="/root/.local/bin:/usr/local/bin:${PATH}"
+
+# HOME for uvx cache (persistent across restarts)
+export HOME="/app/data"
 
 echo "==> DATABASE_URL configured from Cloudron PostgreSQL addon"
 echo "==> Starting MCPJungle gateway on port 8080..."
 
 # Start MCPJungle
-exec /mcpjungle start
+exec /usr/local/bin/mcpjungle start
