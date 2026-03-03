@@ -1,0 +1,23 @@
+{
+  "id": "io.mcpjungle.cloudronapp",
+  "title": "MCPJungle",
+  "author": "MCPJungle Community",
+  "description": "Self-hosted MCP Gateway - Centralize and manage all your MCP servers from a single endpoint. Register/deregister MCP servers on the fly.",
+  "tagline": "One gateway, all your MCP servers",
+  "version": "1.0.0",
+  "healthCheckPath": "/",
+  "httpPort": 8080,
+  "addons": {
+    "postgresql": {}
+  },
+  "manifestVersion": 2,
+  "website": "https://github.com/mcpjungle/mcpjungle",
+  "contactEmail": "jb67190@gmail.com",
+  "icon": "",
+  "tags": [
+    "ai",
+    "mcp",
+    "gateway"
+  ],
+  "minBoxVersion": "7.0.0"
+}
