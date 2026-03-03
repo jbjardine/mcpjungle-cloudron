@@ -5,7 +5,7 @@
   "description": "Self-hosted MCP Gateway - Centralize and manage all your MCP servers from a single endpoint. Register/deregister MCP servers on the fly.",
   "tagline": "One gateway, all your MCP servers",
   "version": "1.0.0",
-  "healthCheckPath": "/",
+  "healthCheckPath": "/health",
   "httpPort": 8080,
   "addons": {
     "postgresql": {}
