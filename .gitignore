@@ -13,9 +13,10 @@
 *.ppk
 .secrets/
 
-# MCP server registration configs (contain credentials)
-wordpress-farniente.json
-analytics-mcp.json
+# MCP server registration configs (contain credentials!)
+# Exclude ALL json except CloudronManifest.json
+*.json
+!CloudronManifest.json
 
 # OS files
 .DS_Store
