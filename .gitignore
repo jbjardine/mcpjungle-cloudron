@@ -1,0 +1,22 @@
+# Build artifacts
+*.exe
+*.out
+*.log
+
+# Local env
+.env
+.env.*
+
+# Secrets and keys
+*.pem
+*.key
+*.ppk
+.secrets/
+
+# MCP server registration configs (contain credentials)
+wordpress-farniente.json
+analytics-mcp.json
+
+# OS files
+.DS_Store
+Thumbs.db

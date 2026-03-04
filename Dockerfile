@@ -25,8 +25,10 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && ln -sf /root/.local/bin/uv /usr/local/bin/uv \
     && ln -sf /root/.local/bin/uvx /usr/local/bin/uvx
 
+# Ensure /app/data mount point exists for Cloudron volume
+RUN mkdir -p /app/data /app/code
+
 # Copy start script
-RUN mkdir -p /app/code
 COPY start.sh /app/code/start.sh
 RUN chmod +x /app/code/start.sh
 

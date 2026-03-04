@@ -8,12 +8,13 @@
   "healthCheckPath": "/health",
   "httpPort": 8080,
   "addons": {
-    "postgresql": {}
+    "postgresql": {},
+    "localstorage": {}
   },
   "manifestVersion": 2,
   "website": "https://github.com/mcpjungle/mcpjungle",
   "contactEmail": "jb67190@gmail.com",
-  "icon": "",
+  "icon": "file://icon.png",
   "tags": [
     "ai",
     "mcp",
