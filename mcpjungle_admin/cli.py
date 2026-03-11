@@ -158,11 +158,15 @@ def cmd_import_existing(args: argparse.Namespace) -> int:
         registry.upsert(entry)
         imported.append(name)
 
+    moved_legacy = registry.cleanup_legacy_server_configs(
+        managed_names=set(imported) | set(skipped)
+    )
     payload = {
         "imported": imported,
         "skipped": skipped,
         "count": len(imported),
         "mode": "all" if args.all else "default",
+        "moved_legacy_configs": moved_legacy,
     }
     emit(payload, as_json=args.json)
     return 0
@@ -211,8 +215,15 @@ def cmd_remove(args: argparse.Namespace) -> int:
 
 
 def cmd_reconcile(args: argparse.Namespace) -> int:
-    _, _, _, reconciler = build_runtime()
+    registry, _, _, reconciler = build_runtime()
+    moved_legacy = registry.cleanup_legacy_server_configs()
     results = reconciler.reconcile(name=args.name)
+    if args.json:
+        emit({"moved_legacy_configs": moved_legacy, "results": results}, as_json=True)
+        return 0 if all(result["status"] != "error" for result in results) else 1
+
+    for item in moved_legacy:
+        print(f"moved_legacy_config: {item['source']} -> {item['target']}")
     emit(results, as_json=args.json)
     return 0 if all(result["status"] != "error" for result in results) else 1
 
@@ -249,6 +260,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "auth_config_exists": auth_config.exists(),
         "auth_config_mode": permission_mode(auth_config),
         "registry_mode": permission_mode(registry.registry_path),
+        "legacy_configs_root": str(registry.legacy_configs_root),
+        "legacy_config_files": registry.list_legacy_server_configs(),
         "gateway_healthy": gateway_ok,
         "gateway_message": gateway_message,
         "managed_entries": [],
@@ -267,6 +280,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     if permission_mode(registry.registry_path) not in {None, 0o600}:
         report["issues"].append(
             f"Insecure permissions on {registry.registry_path}: expected 0o600, got {oct(permission_mode(registry.registry_path) or 0)}"
+        )
+    if report["legacy_config_files"]:
+        report["issues"].append(
+            f"Legacy server config files still exist in {data_root}; run reconcile or import-existing to move them under {registry.legacy_configs_root}"
         )
 
     try:

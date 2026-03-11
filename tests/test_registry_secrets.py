@@ -120,6 +120,41 @@ class RegistrySecretsTest(unittest.TestCase):
         restored = resolved_server_config(entry["last_known_good"], entry)
         self.assertEqual(restored["env"]["PASSWORD"], "secret")
 
+    def test_cleanup_moves_legacy_server_configs_out_of_data_root(self) -> None:
+        registry = self.make_registry()
+        registry.data_root = registry.registry_path.parent.parent
+        registry.upsert(
+            {
+                "name": "demo",
+                "description": "Demo",
+                "transport": "stdio",
+                "managed": True,
+                "managed_type": "custom_command",
+                "runtime_spec": {"command": "node", "args": ["server.js"]},
+                "install_spec": {"updateStrategy": "manual"},
+                "healthcheck_spec": {"mode": "disabled"},
+            }
+        )
+        legacy_path = registry.data_root / "demo.json"
+        legacy_path.write_text(
+            json.dumps(
+                {
+                    "name": "demo",
+                    "transport": "stdio",
+                    "command": "node",
+                    "args": ["server.js"],
+                }
+            )
+        )
+
+        moved = registry.cleanup_legacy_server_configs()
+        self.assertEqual(len(moved), 1)
+        self.assertFalse(legacy_path.exists())
+        moved_path = Path(moved[0]["target"])
+        self.assertTrue(moved_path.exists())
+        self.assertEqual(moved_path.parent, registry.legacy_configs_root)
+        self.assertEqual(registry.list_legacy_server_configs(), [])
+
 
 if __name__ == "__main__":
     unittest.main()

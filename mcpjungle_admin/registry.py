@@ -32,16 +32,20 @@ class ManagedRegistry:
         self.bundles_root = Path(bundles_root or data_root / "mcp-bundles")
         self.work_root = Path(work_root or self.managed_root / "work")
         self.secrets_root = self.managed_root / "secrets"
+        self.legacy_configs_root = self.managed_root / "legacy-configs"
+        self.data_root = data_root
 
     def ensure_layout(self) -> None:
         self.managed_root.mkdir(parents=True, exist_ok=True)
         self.work_root.mkdir(parents=True, exist_ok=True)
         self.bundles_root.mkdir(parents=True, exist_ok=True)
         self.secrets_root.mkdir(parents=True, exist_ok=True)
+        self.legacy_configs_root.mkdir(parents=True, exist_ok=True)
         os.chmod(self.managed_root, 0o700)
         os.chmod(self.work_root, 0o700)
         os.chmod(self.bundles_root, 0o700)
         os.chmod(self.secrets_root, 0o700)
+        os.chmod(self.legacy_configs_root, 0o700)
 
     def load(self) -> dict[str, Any]:
         self.ensure_layout()
@@ -110,6 +114,53 @@ class ManagedRegistry:
         self._delete_secret_material(removed or {})
         self.save(document)
         return removed
+
+    def cleanup_legacy_server_configs(
+        self,
+        managed_names: set[str] | None = None,
+    ) -> list[dict[str, str]]:
+        self.ensure_layout()
+        if managed_names is None:
+            managed_names = {entry["name"] for entry in self.list_entries()}
+
+        moved: list[dict[str, str]] = []
+        for path in sorted(self.data_root.glob("*.json")):
+            if path.name == self.registry_path.name:
+                continue
+            try:
+                with path.open("r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+            except (OSError, json.JSONDecodeError):
+                continue
+
+            if not isinstance(payload, dict):
+                continue
+
+            name = payload.get("name")
+            transport = payload.get("transport")
+            if not name or not transport or name not in managed_names:
+                continue
+
+            target_path = self.legacy_configs_root / path.name
+            if target_path.exists():
+                target_path = self.legacy_configs_root / f"{name}-{path.name}"
+            path.replace(target_path)
+            chmod_if_exists(target_path, 0o600)
+            moved.append({"source": str(path), "target": str(target_path), "name": name})
+
+        return moved
+
+    def list_legacy_server_configs(self) -> list[dict[str, str]]:
+        legacy_files: list[dict[str, str]] = []
+        for path in sorted(self.data_root.glob("*.json")):
+            try:
+                with path.open("r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+            except (OSError, json.JSONDecodeError):
+                continue
+            if isinstance(payload, dict) and payload.get("name") and payload.get("transport"):
+                legacy_files.append({"path": str(path), "name": payload["name"]})
+        return legacy_files
 
     def _protect_document(self, document: dict[str, Any]) -> bool:
         changed = False
