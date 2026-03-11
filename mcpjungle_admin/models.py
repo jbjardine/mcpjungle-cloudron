@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,33 @@ SERVER_CONFIG_KEYS = {
     "env",
     "url",
     "bearer_token",
+}
+SENSITIVE_ENV_KEYWORDS = (
+    "TOKEN",
+    "SECRET",
+    "PASSWORD",
+    "PASS",
+    "API_KEY",
+    "AUTH",
+    "SESSION",
+    "COOKIE",
+    "PRIVATE_KEY",
+    "ACCESS_KEY",
+    "CREDENTIAL",
+)
+SAFE_ENV_EXACT_KEYS = {
+    "PATH",
+    "HOME",
+    "PWD",
+    "PORT",
+    "HOST",
+    "NODE_OPTIONS",
+    "OAUTH_ENABLED",
+    "GOOGLE_PROJECT_ID",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "WINDEV_PROXY_URL",
+    "WP_API_URL",
+    "N8N_API_URL",
 }
 
 
@@ -62,6 +90,20 @@ def server_config_from_entry(entry: dict[str, Any]) -> dict[str, Any]:
         "transport": normalize_transport(entry.get("transport")),
     }
     runtime_spec = copy.deepcopy(entry.get("runtime_spec", {}))
+    secret_material = load_secret_material(entry.get("secret_material_file"))
+    env = {
+        **secret_material.get("env", {}),
+        **runtime_spec.get("env", {}),
+    }
+    if env:
+        runtime_spec["env"] = env
+    elif "env" in runtime_spec:
+        runtime_spec.pop("env")
+
+    bearer_token = runtime_spec.get("bearer_token") or secret_material.get("bearer_token")
+    if bearer_token:
+        runtime_spec["bearer_token"] = bearer_token
+
     config.update(runtime_spec)
     return sanitize_server_config(config)
 
@@ -127,3 +169,50 @@ def is_path_within(parent: Path, candidate: Path) -> bool:
     except ValueError:
         return False
 
+
+def is_sensitive_env_key(key: str, value: str) -> bool:
+    upper_key = key.upper()
+    if upper_key in SAFE_ENV_EXACT_KEYS:
+        return False
+    if looks_like_filesystem_path(value):
+        return False
+    if looks_like_url(value):
+        return False
+    return any(keyword in upper_key for keyword in SENSITIVE_ENV_KEYWORDS)
+
+
+def looks_like_url(value: Any) -> bool:
+    return isinstance(value, str) and value.startswith(("http://", "https://"))
+
+
+def looks_like_filesystem_path(value: Any) -> bool:
+    return isinstance(value, str) and (
+        value.startswith("/")
+        or value.startswith("./")
+        or value.startswith("../")
+        or value.startswith("~")
+    )
+
+
+def load_secret_material(secret_material_file: str | None) -> dict[str, Any]:
+    if not secret_material_file:
+        return {}
+    path = Path(secret_material_file)
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    return payload if isinstance(payload, dict) else {}
+
+
+def chmod_if_exists(path: str | Path, mode: int) -> None:
+    path_obj = Path(path)
+    if path_obj.exists():
+        os.chmod(path_obj, mode)
+
+
+def permission_mode(path: str | Path) -> int | None:
+    path_obj = Path(path)
+    if not path_obj.exists():
+        return None
+    return path_obj.stat().st_mode & 0o777

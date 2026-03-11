@@ -39,6 +39,11 @@ export PATH="/usr/bin:/root/.local/bin:/usr/local/bin:${PATH}"
 export HOME="${APP_HOME}"
 
 mkdir -p /app/data/.mcpjungle-managed/work /app/data/mcp-bundles 2>/dev/null || true
+chmod 700 /app/data/.mcpjungle-managed /app/data/.mcpjungle-managed/work /app/data/mcp-bundles 2>/dev/null || true
+chmod 600 /app/data/.mcpjungle-managed/registry.json /app/data/.mcpjungle-managed/secrets/*.json 2>/dev/null || true
+if [ -f /app/data/.mcpjungle.conf ]; then
+    chmod 600 /app/data/.mcpjungle.conf 2>/dev/null || true
+fi
 
 echo "==> DATABASE_URL configured from Cloudron PostgreSQL addon"
 echo "==> Starting MCPJungle gateway on port 8080..."

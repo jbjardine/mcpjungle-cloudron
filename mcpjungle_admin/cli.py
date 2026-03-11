@@ -16,7 +16,7 @@ from .managed_types import (
     update_entry_version,
 )
 from .mcpjungle_client import MCPJungleClient
-from .models import is_path_within
+from .models import is_path_within, permission_mode
 from .reconcile import Reconciler
 from .registry import ManagedRegistry
 
@@ -245,7 +245,10 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "registry_path": str(registry.registry_path),
         "bundles_root": str(registry.bundles_root),
         "work_root": str(registry.work_root),
+        "secrets_root": str(registry.secrets_root),
         "auth_config_exists": auth_config.exists(),
+        "auth_config_mode": permission_mode(auth_config),
+        "registry_mode": permission_mode(registry.registry_path),
         "gateway_healthy": gateway_ok,
         "gateway_message": gateway_message,
         "managed_entries": [],
@@ -255,6 +258,15 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     if not auth_config.exists():
         report["issues"].append(
             f"Missing auth config at {auth_config}; boot-time reconcile will be skipped"
+        )
+    elif permission_mode(auth_config) != 0o600:
+        report["issues"].append(
+            f"Insecure permissions on {auth_config}: expected 0o600, got {oct(permission_mode(auth_config) or 0)}"
+        )
+
+    if permission_mode(registry.registry_path) not in {None, 0o600}:
+        report["issues"].append(
+            f"Insecure permissions on {registry.registry_path}: expected 0o600, got {oct(permission_mode(registry.registry_path) or 0)}"
         )
 
     try:
@@ -273,6 +285,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                 "registered": entry["name"] in current_configs,
                 "healthy": healthy,
                 "message": message,
+                "secret_env_keys": entry.get("secret_env_keys", []),
+                "has_secret_bearer_token": entry.get("has_secret_bearer_token", False),
             }
         )
         if not healthy:
