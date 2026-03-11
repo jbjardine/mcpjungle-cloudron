@@ -2,6 +2,8 @@
 *.exe
 *.out
 *.log
+__pycache__/
+*.py[cod]
 
 # Local env
 .env
