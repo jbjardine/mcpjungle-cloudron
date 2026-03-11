@@ -55,6 +55,7 @@ class MCPJungleClient:
     def register_server(self, server_config: dict[str, Any]) -> str:
         self.work_root.mkdir(parents=True, exist_ok=True)
         config = sanitize_server_config(server_config)
+        config = self._config_for_native_register(config)
         with tempfile.NamedTemporaryFile(
             "w",
             encoding="utf-8",
@@ -132,3 +133,9 @@ class MCPJungleClient:
             return False
         return any(key in payload for key in ("command", "url"))
 
+    @staticmethod
+    def _config_for_native_register(config: dict[str, Any]) -> dict[str, Any]:
+        native_config = dict(config)
+        if native_config.get("transport") == "streamable-http":
+            native_config["transport"] = "streamable_http"
+        return native_config
