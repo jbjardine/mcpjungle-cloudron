@@ -49,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     install_parser.add_argument("--version")
     install_parser.add_argument("--url")
     install_parser.add_argument("--bearer-token")
-    install_parser.add_argument("--command")
+    install_parser.add_argument("--command", dest="runtime_command")
     install_parser.add_argument("--bundle-source")
     install_parser.add_argument("--update-command")
     install_parser.add_argument("--manual-update-hook")

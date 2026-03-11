@@ -127,11 +127,11 @@ def build_entry_from_install_args(
             "updateStrategy": "external",
         }
     elif managed_type == "custom_command":
-        if not args.command:
+        if not args.runtime_command:
             raise ValueError("--command is required for custom_command")
         transport = normalize_transport(args.transport or "stdio")
         runtime_spec = {
-            "command": args.command,
+            "command": args.runtime_command,
             "args": list(args.arg),
             "env": env,
         }
@@ -142,7 +142,7 @@ def build_entry_from_install_args(
     elif managed_type == "local_bundle":
         if not args.bundle_source:
             raise ValueError("--bundle-source is required for local_bundle")
-        if not args.command:
+        if not args.runtime_command:
             raise ValueError("--command is required for local_bundle")
         registry.ensure_layout()
         source_path = Path(args.bundle_source).expanduser().resolve()
@@ -156,7 +156,7 @@ def build_entry_from_install_args(
         shutil.copytree(source_path, target_path)
         transport = normalize_transport(args.transport or "stdio")
         runtime_spec = {
-            "command": maybe_resolve_bundle_command(args.command, target_path),
+            "command": maybe_resolve_bundle_command(args.runtime_command, target_path),
             "args": list(args.arg),
             "env": env,
         }
