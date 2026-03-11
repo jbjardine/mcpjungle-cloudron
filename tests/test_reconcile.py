@@ -71,6 +71,32 @@ class ReconcileTest(unittest.TestCase):
         self.assertEqual(saved["status"], "healthy")
         self.assertEqual(len(client.registered), 1)
 
+    def test_reconcile_result_does_not_expose_sensitive_env(self) -> None:
+        registry = self.make_registry()
+        registry.upsert(
+            {
+                "name": "demo",
+                "description": "Demo server",
+                "transport": "stdio",
+                "managed": True,
+                "managed_type": "custom_command",
+                "runtime_spec": {
+                    "command": "node",
+                    "args": ["server.js"],
+                    "env": {"PASSWORD": "secret"},
+                },
+                "install_spec": {"updateStrategy": "manual"},
+                "healthcheck_spec": {"mode": "list_tools"},
+            }
+        )
+
+        client = FakeClient()
+        reconciler = Reconciler(registry, client, HealthChecker(client))
+        result = reconciler.reconcile(name="demo")[0]
+
+        self.assertEqual(result["status"], "healthy")
+        self.assertNotIn("PASSWORD", result["entry"]["last_known_good"].get("env", {}))
+
     def test_reconcile_rolls_back_on_health_failure(self) -> None:
         registry = self.make_registry()
         previous_config = {
@@ -108,4 +134,3 @@ class ReconcileTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

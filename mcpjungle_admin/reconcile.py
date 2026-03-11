@@ -5,7 +5,12 @@ from typing import Any
 
 from .health import HealthChecker
 from .mcpjungle_client import MCPJungleClient, MCPJungleClientError
-from .models import resolved_server_config, runtime_hash_from_config, server_config_from_entry
+from .models import (
+    resolved_server_config,
+    runtime_hash_from_config,
+    server_config_from_entry,
+    strip_sensitive_server_config,
+)
 from .registry import ManagedRegistry
 
 
@@ -55,7 +60,7 @@ class Reconciler:
         if current_hash == desired_hash:
             ok, message = self.health_checker.check_entry(updated_entry)
             updated_entry["last_applied_hash"] = desired_hash
-            updated_entry["last_known_good"] = desired_config
+            updated_entry["last_known_good"] = strip_sensitive_server_config(desired_config)
             updated_entry["status"] = "unchanged" if ok else "error"
             updated_entry["last_error"] = "" if ok else message
             return {
@@ -77,7 +82,7 @@ class Reconciler:
                 raise RuntimeError(message)
 
             updated_entry["last_applied_hash"] = desired_hash
-            updated_entry["last_known_good"] = desired_config
+            updated_entry["last_known_good"] = strip_sensitive_server_config(desired_config)
             updated_entry["status"] = "healthy"
             updated_entry["last_error"] = ""
             return {
