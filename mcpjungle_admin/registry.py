@@ -12,6 +12,7 @@ from .models import (
     is_sensitive_env_key,
     load_secret_material,
     new_registry_document,
+    strip_sensitive_server_config,
     utcnow_iso,
 )
 
@@ -146,6 +147,10 @@ class ManagedRegistry:
         else:
             runtime_spec.pop("env", None)
         runtime_spec.pop("bearer_token", None)
+        if normalized.get("last_known_good"):
+            normalized["last_known_good"] = strip_sensitive_server_config(
+                normalized["last_known_good"]
+            )
 
         changed = False
         if secret_material:

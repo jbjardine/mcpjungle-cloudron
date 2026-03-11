@@ -108,6 +108,21 @@ def server_config_from_entry(entry: dict[str, Any]) -> dict[str, Any]:
     return sanitize_server_config(config)
 
 
+def resolved_server_config(config: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
+    merged = copy.deepcopy(config)
+    secret_material = load_secret_material(entry.get("secret_material_file"))
+    env = {
+        **secret_material.get("env", {}),
+        **merged.get("env", {}),
+    }
+    if env:
+        merged["env"] = env
+    bearer_token = merged.get("bearer_token") or secret_material.get("bearer_token")
+    if bearer_token:
+        merged["bearer_token"] = bearer_token
+    return sanitize_server_config(merged)
+
+
 def normalize_data(data: Any) -> Any:
     if isinstance(data, dict):
         return {key: normalize_data(data[key]) for key in sorted(data)}
@@ -203,6 +218,22 @@ def load_secret_material(secret_material_file: str | None) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     return payload if isinstance(payload, dict) else {}
+
+
+def strip_sensitive_server_config(config: dict[str, Any]) -> dict[str, Any]:
+    sanitized = copy.deepcopy(config)
+    env = sanitized.get("env", {})
+    public_env = {
+        key: value
+        for key, value in env.items()
+        if not is_sensitive_env_key(key, value)
+    }
+    if public_env:
+        sanitized["env"] = public_env
+    elif "env" in sanitized:
+        sanitized.pop("env")
+    sanitized.pop("bearer_token", None)
+    return sanitize_server_config(sanitized)
 
 
 def chmod_if_exists(path: str | Path, mode: int) -> None:

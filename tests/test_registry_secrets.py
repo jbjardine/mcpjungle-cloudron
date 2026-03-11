@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mcpjungle_admin.models import server_config_from_entry
+from mcpjungle_admin.models import resolved_server_config, server_config_from_entry
 from mcpjungle_admin.registry import ManagedRegistry
 
 
@@ -88,6 +88,37 @@ class RegistrySecretsTest(unittest.TestCase):
         entry = document["servers"]["demo"]
         self.assertIn("secret_material_file", entry)
         self.assertNotIn("PASSWORD", entry["runtime_spec"].get("env", {}))
+
+    def test_last_known_good_is_stripped_but_runtime_can_be_restored(self) -> None:
+        registry = self.make_registry()
+        registry.upsert(
+            {
+                "name": "demo",
+                "description": "Demo",
+                "transport": "stdio",
+                "managed": True,
+                "managed_type": "custom_command",
+                "runtime_spec": {
+                    "command": "node",
+                    "args": ["server.js"],
+                    "env": {"PASSWORD": "secret"},
+                },
+                "install_spec": {"updateStrategy": "manual"},
+                "healthcheck_spec": {"mode": "disabled"},
+                "last_known_good": {
+                    "name": "demo",
+                    "transport": "stdio",
+                    "command": "node",
+                    "args": ["server.js"],
+                    "env": {"PASSWORD": "secret"},
+                },
+            }
+        )
+
+        entry = registry.require("demo")
+        self.assertNotIn("PASSWORD", entry["last_known_good"].get("env", {}))
+        restored = resolved_server_config(entry["last_known_good"], entry)
+        self.assertEqual(restored["env"]["PASSWORD"], "secret")
 
 
 if __name__ == "__main__":

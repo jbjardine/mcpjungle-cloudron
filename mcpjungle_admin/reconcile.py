@@ -5,7 +5,7 @@ from typing import Any
 
 from .health import HealthChecker
 from .mcpjungle_client import MCPJungleClient, MCPJungleClientError
-from .models import runtime_hash_from_config, server_config_from_entry
+from .models import resolved_server_config, runtime_hash_from_config, server_config_from_entry
 from .registry import ManagedRegistry
 
 
@@ -110,7 +110,7 @@ class Reconciler:
         try:
             if rollback_config:
                 self.client.deregister_server(entry["name"], ignore_missing=True)
-                self.client.register_server(rollback_config)
+                self.client.register_server(resolved_server_config(rollback_config, entry))
                 return "rollback applied"
 
             if entry["managed_type"] != "http_remote":
@@ -120,4 +120,3 @@ class Reconciler:
             return "remote config kept in error state"
         except MCPJungleClientError as exc:
             return f"rollback failed: {exc}"
-
