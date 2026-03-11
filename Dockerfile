@@ -28,9 +28,16 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
 # Ensure /app/data mount point exists for Cloudron volume
 RUN mkdir -p /app/data /app/code
 
+# Copy app-owned MCP management tooling
+COPY mcpjungle_admin /app/code/mcpjungle_admin
+COPY bin/mcpjungle-admin /usr/local/bin/mcpjungle-admin
+RUN chmod +x /usr/local/bin/mcpjungle-admin
+
 # Copy start script
 COPY start.sh /app/code/start.sh
 RUN chmod +x /app/code/start.sh
+
+ENV PYTHONPATH="/app/code"
 
 EXPOSE 8080
 
