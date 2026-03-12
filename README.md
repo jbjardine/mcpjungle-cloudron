@@ -24,6 +24,7 @@ Register any MCP server (analytics, WordPress, custom tools...) and access them 
 - **Cloudron-native** — PostgreSQL addon for config, local storage for credentials
 - **Managed MCP lifecycle** — install, update, remove, and reconcile servers with `mcpjungle-admin`
 - **Persistent app-owned state** — managed MCP metadata lives in `/app/data/.mcpjungle-managed/`
+- **Managed runtime files** — bind file-backed secrets or credentials into app-owned storage and reapply servers safely
 - **Pre-installed runtimes** — Node.js 20, Python 3, uv/uvx ready for any MCP server
 - **Streamable HTTP** — modern MCP transport with session management
 
@@ -113,8 +114,8 @@ Install a pinned `uvx` server:
 ```bash
 mcpjungle-admin install \
   --type uvx_package \
-  --name analytics-mcp \
-  --package analytics-mcp
+  --name demo-uvx-server \
+  --package your-uvx-package
 ```
 
 Install a remote HTTP MCP:
@@ -145,7 +146,26 @@ mcpjungle-admin update wordpress-farniente --to 1.2.3
 Ask the app to resolve and pin the latest package version:
 
 ```bash
-mcpjungle-admin update analytics-mcp
+mcpjungle-admin update demo-uvx-server
+```
+
+Bind any file-backed secret or credential into app-owned managed storage, expose it through a runtime env var, optionally switch to a stronger tool-level healthcheck, and force a clean re-register:
+
+```bash
+mcpjungle-admin bind-file \
+  --name demo-server \
+  --source /app/data/imports/runtime-secret.json \
+  --env-key DEMO_SECRET_FILE \
+  --set-env DEMO_MODE=prod \
+  --health-mode invoke_tool \
+  --health-tool demo-server__ping \
+  --health-input '{}'
+```
+
+Force a managed entry to re-register even when the config path did not change but the underlying file contents did:
+
+```bash
+mcpjungle-admin reconcile --name demo-server --force
 ```
 
 Check registry, auth config, and live health:

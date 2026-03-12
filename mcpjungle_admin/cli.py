@@ -12,9 +12,11 @@ from .health import HealthChecker
 from .managed_types import (
     build_entry_from_install_args,
     imported_entry_from_server_config,
+    parse_env_items,
     run_update_hook,
     update_entry_version,
 )
+from .managed_files import configure_managed_file
 from .mcpjungle_client import MCPJungleClient
 from .models import is_path_within, permission_mode
 from .reconcile import Reconciler
@@ -57,9 +59,11 @@ def build_parser() -> argparse.ArgumentParser:
     install_parser.add_argument("--env", action="append", default=[], help="KEY=VALUE")
     install_parser.add_argument(
         "--health-mode",
-        choices=["gateway", "list_tools", "http", "disabled"],
+        choices=["gateway", "list_tools", "invoke_tool", "http", "disabled"],
     )
     install_parser.add_argument("--health-url")
+    install_parser.add_argument("--health-tool")
+    install_parser.add_argument("--health-input")
 
     import_parser = subparsers.add_parser(
         "import-existing", help="Import existing MCPJungle servers into the managed registry"
@@ -77,6 +81,36 @@ def build_parser() -> argparse.ArgumentParser:
         "reconcile", help="Reconcile app-owned state with MCPJungle"
     )
     reconcile_parser.add_argument("--name")
+    reconcile_parser.add_argument("--force", action="store_true")
+
+    bind_file_parser = subparsers.add_parser(
+        "bind-file",
+        help="Copy a file into app-managed secrets, expose its path via runtime env, and force reapply the MCP",
+    )
+    bind_file_parser.add_argument("--name", required=True)
+    bind_file_parser.add_argument("--source", required=True)
+    bind_file_parser.add_argument("--env-key", required=True)
+    bind_file_parser.add_argument("--dest-name")
+    bind_file_parser.add_argument(
+        "--set-env",
+        action="append",
+        default=[],
+        help="Repeatable KEY=VALUE env overrides to apply alongside the managed file",
+    )
+    bind_file_parser.add_argument(
+        "--clear-env",
+        action="append",
+        default=[],
+        help="Repeatable env keys to remove before reapplying the MCP",
+    )
+    bind_file_parser.add_argument(
+        "--health-mode",
+        choices=["leave", "gateway", "list_tools", "invoke_tool", "http", "disabled"],
+        default="leave",
+    )
+    bind_file_parser.add_argument("--health-url")
+    bind_file_parser.add_argument("--health-tool")
+    bind_file_parser.add_argument("--health-input")
 
     subparsers.add_parser("list-managed", help="List managed MCP entries")
     subparsers.add_parser("doctor", help="Inspect registry, auth config, and health")
@@ -217,7 +251,11 @@ def cmd_remove(args: argparse.Namespace) -> int:
 def cmd_reconcile(args: argparse.Namespace) -> int:
     registry, _, _, reconciler = build_runtime()
     moved_legacy = registry.cleanup_legacy_server_configs()
-    results = reconciler.reconcile(name=args.name)
+    results = (
+        reconciler.reconcile_force(name=args.name)
+        if args.force
+        else reconciler.reconcile(name=args.name)
+    )
     if args.json:
         emit({"moved_legacy_configs": moved_legacy, "results": results}, as_json=True)
         return 0 if all(result["status"] != "error" for result in results) else 1
@@ -226,6 +264,39 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
         print(f"moved_legacy_config: {item['source']} -> {item['target']}")
     emit(results, as_json=args.json)
     return 0 if all(result["status"] != "error" for result in results) else 1
+
+
+def cmd_bind_file(args: argparse.Namespace) -> int:
+    registry, _, _, reconciler = build_runtime()
+    entry = registry.require(args.name)
+    healthcheck_spec = None
+    if args.health_mode != "leave":
+        healthcheck_spec = {"mode": args.health_mode}
+        if args.health_url:
+            healthcheck_spec["url"] = args.health_url
+        if args.health_tool:
+            healthcheck_spec["tool_name"] = args.health_tool
+        if args.health_input:
+            healthcheck_spec["tool_input"] = json.loads(args.health_input)
+
+    updated_entry, info = configure_managed_file(
+        registry,
+        entry,
+        source=args.source,
+        env_key=args.env_key,
+        dest_name=args.dest_name,
+        set_env=parse_env_items(args.set_env),
+        clear_env=args.clear_env,
+        healthcheck_spec=healthcheck_spec,
+    )
+    registry.upsert(updated_entry)
+    reconcile_result = reconciler.reconcile_force(name=args.name)[0]
+    payload = {
+        "binding": info,
+        "reconcile": reconcile_result,
+    }
+    emit(payload, as_json=args.json)
+    return 0 if reconcile_result["status"] in {"healthy", "unchanged"} else 1
 
 
 def cmd_list_managed(args: argparse.Namespace) -> int:
@@ -323,6 +394,7 @@ def main(argv: list[str] | None = None) -> int:
         "update": cmd_update,
         "remove": cmd_remove,
         "reconcile": cmd_reconcile,
+        "bind-file": cmd_bind_file,
         "list-managed": cmd_list_managed,
         "doctor": cmd_doctor,
     }

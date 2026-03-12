@@ -13,6 +13,7 @@ class FakeClient:
         self.should_fail_health = should_fail_health
         self.registered = []
         self.deregistered = []
+        self.invoked = []
 
     def get_server_configs(self):
         return dict(self.current_configs)
@@ -31,6 +32,12 @@ class FakeClient:
         if self.should_fail_health:
             raise RuntimeError(f"{server_name} unhealthy")
         return "tool-a\ntool-b"
+
+    def invoke_tool(self, tool_name, tool_input=None):
+        self.invoked.append((tool_name, tool_input))
+        if self.should_fail_health:
+            raise RuntimeError(f"{tool_name} unhealthy")
+        return "ok"
 
     def gateway_health(self):
         return True, "healthy"
@@ -130,6 +137,66 @@ class ReconcileTest(unittest.TestCase):
         saved = registry.require("demo")
         self.assertEqual(saved["status"], "error")
         self.assertIn("rollback applied", saved["last_error"])
+
+    def test_reconcile_force_re_registers_even_if_hash_is_unchanged(self) -> None:
+        registry = self.make_registry()
+        config = {
+            "name": "demo",
+            "description": "Demo server",
+            "transport": "stdio",
+            "command": "node",
+            "args": ["server.js"],
+        }
+        registry.upsert(
+            {
+                "name": "demo",
+                "description": "Demo server",
+                "transport": "stdio",
+                "managed": True,
+                "managed_type": "custom_command",
+                "runtime_spec": {"command": "node", "args": ["server.js"]},
+                "install_spec": {"updateStrategy": "manual"},
+                "healthcheck_spec": {"mode": "list_tools"},
+                "last_known_good": config,
+            }
+        )
+
+        client = FakeClient(current_configs={"demo": config})
+        reconciler = Reconciler(registry, client, HealthChecker(client))
+        result = reconciler.reconcile_force(name="demo")[0]
+
+        self.assertEqual(result["status"], "healthy")
+        self.assertEqual(len(client.deregistered), 1)
+        self.assertEqual(len(client.registered), 1)
+
+    def test_invoke_tool_healthcheck_is_supported(self) -> None:
+        registry = self.make_registry()
+        registry.upsert(
+            {
+                "name": "demo",
+                "description": "Demo",
+                "transport": "stdio",
+                "managed": True,
+                "managed_type": "custom_command",
+                "runtime_spec": {"command": "node", "args": ["server.js"]},
+                "install_spec": {"updateStrategy": "manual"},
+                "healthcheck_spec": {
+                    "mode": "invoke_tool",
+                    "tool_name": "demo__ping",
+                    "tool_input": {},
+                },
+            }
+        )
+
+        client = FakeClient()
+        reconciler = Reconciler(registry, client, HealthChecker(client))
+        result = reconciler.reconcile(name="demo")[0]
+
+        self.assertEqual(result["status"], "healthy")
+        self.assertEqual(
+            client.invoked,
+            [("demo__ping", {})],
+        )
 
 
 if __name__ == "__main__":
