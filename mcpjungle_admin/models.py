@@ -206,6 +206,13 @@ def looks_like_filesystem_path(value: Any) -> bool:
         or value.startswith("./")
         or value.startswith("../")
         or value.startswith("~")
+        or value.startswith("\\\\")
+        or (
+            len(value) >= 3
+            and value[0].isalpha()
+            and value[1] == ":"
+            and value[2] in {"/", "\\"}
+        )
     )
 
 

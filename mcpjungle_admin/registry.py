@@ -112,7 +112,7 @@ class ManagedRegistry:
     def remove(self, name: str) -> dict[str, Any] | None:
         document = self.load()
         removed = document["servers"].pop(name, None)
-        self._delete_secret_material(removed or {})
+        self._delete_secret_material(removed or {}, delete_managed_files=True)
         self.save(document)
         return removed
 
@@ -216,7 +216,7 @@ class ManagedRegistry:
         else:
             if normalized.get("secret_material_file"):
                 changed = True
-            self._delete_secret_material(normalized)
+            self._delete_secret_material(normalized, delete_managed_files=False)
             normalized.pop("secret_material_file", None)
             normalized.pop("secret_env_keys", None)
             normalized.pop("has_secret_bearer_token", None)
@@ -229,14 +229,20 @@ class ManagedRegistry:
     def _secret_material_path(self, name: str) -> Path:
         return self.secrets_root / f"{name}.json"
 
-    def _delete_secret_material(self, entry: dict[str, Any]) -> None:
+    def _delete_secret_material(
+        self,
+        entry: dict[str, Any],
+        *,
+        delete_managed_files: bool,
+    ) -> None:
         secret_material_file = entry.get("secret_material_file")
         if secret_material_file:
             Path(secret_material_file).unlink(missing_ok=True)
-        for path_value in entry.get("managed_files", []):
-            path = Path(path_value)
-            if path.exists() and is_path_within(self.secrets_root, path):
-                path.unlink(missing_ok=True)
+        if delete_managed_files:
+            for path_value in entry.get("managed_files", []):
+                path = Path(path_value)
+                if path.exists() and is_path_within(self.secrets_root, path):
+                    path.unlink(missing_ok=True)
 
     @staticmethod
     def _write_json(path: Path, payload: dict[str, Any], mode: int) -> None:

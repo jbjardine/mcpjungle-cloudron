@@ -84,6 +84,33 @@ class ManagedFilesTest(unittest.TestCase):
         registry.remove("demo")
         self.assertFalse(managed_path.exists())
 
+    def test_registry_upsert_keeps_managed_files_for_path_env_key(self) -> None:
+        registry = self.make_registry()
+        entry = registry.upsert(self.make_entry())
+
+        source_path = registry.work_root / "runtime-file.json"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text('{"client":"demo"}')
+
+        updated_entry, _ = configure_managed_file(
+            registry,
+            entry,
+            source=source_path,
+            env_key="RUNTIME_FILE_PATH",
+            dest_name="runtime-file.json",
+        )
+        saved_entry = registry.upsert(updated_entry)
+
+        managed_path = Path(saved_entry["managed_files"][0])
+        self.assertTrue(managed_path.exists())
+
+        reloaded_entry = registry.require("demo")
+        self.assertEqual(reloaded_entry["managed_files"], [str(managed_path)])
+        self.assertEqual(
+            reloaded_entry["runtime_spec"]["env"]["RUNTIME_FILE_PATH"],
+            str(managed_path),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

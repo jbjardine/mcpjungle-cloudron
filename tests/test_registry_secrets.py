@@ -122,6 +122,32 @@ class RegistrySecretsTest(unittest.TestCase):
         restored = resolved_server_config(entry["last_known_good"], entry)
         self.assertEqual(restored["env"]["PASSWORD"], "secret")
 
+    def test_windows_style_path_env_is_not_treated_as_secret(self) -> None:
+        registry = self.make_registry()
+        registry.upsert(
+            {
+                "name": "demo",
+                "description": "Demo",
+                "transport": "stdio",
+                "managed": True,
+                "managed_type": "custom_command",
+                "runtime_spec": {
+                    "command": "node",
+                    "args": ["server.js"],
+                    "env": {"RUNTIME_SECRET_FILE": r"C:\temp\cred.json"},
+                },
+                "install_spec": {"updateStrategy": "manual"},
+                "healthcheck_spec": {"mode": "disabled"},
+            }
+        )
+
+        entry = registry.require("demo")
+        self.assertEqual(
+            entry["runtime_spec"]["env"]["RUNTIME_SECRET_FILE"],
+            r"C:\temp\cred.json",
+        )
+        self.assertNotIn("secret_material_file", entry)
+
     def test_cleanup_moves_legacy_server_configs_out_of_data_root(self) -> None:
         registry = self.make_registry()
         registry.data_root = registry.registry_path.parent.parent
