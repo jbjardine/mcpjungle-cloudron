@@ -31,11 +31,13 @@ RUN mkdir -p /app/data /app/code
 # Copy app-owned MCP management tooling
 COPY mcpjungle_admin /app/code/mcpjungle_admin
 COPY bin/mcpjungle-admin /usr/local/bin/mcpjungle-admin
-RUN chmod +x /usr/local/bin/mcpjungle-admin
+RUN sed -i 's/\r$//' /usr/local/bin/mcpjungle-admin \
+    && chmod +x /usr/local/bin/mcpjungle-admin
 
 # Copy start script
 COPY start.sh /app/code/start.sh
-RUN chmod +x /app/code/start.sh
+RUN sed -i 's/\r$//' /app/code/start.sh \
+    && chmod +x /app/code/start.sh
 
 ENV PYTHONPATH="/app/code"
 

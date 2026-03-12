@@ -35,7 +35,7 @@ export MCP_SERVER_INIT_REQ_TIMEOUT_SEC="${MCP_SERVER_INIT_REQ_TIMEOUT_SEC:-60}"
 # Prefer distro Node.js over the legacy Cloudron base Node in PATH.
 export PATH="/usr/bin:/root/.local/bin:/usr/local/bin:${PATH}"
 
-# HOME for uvx cache (persistent across restarts)
+# HOME for uvx cache, kept across restarts
 export HOME="${APP_HOME}"
 
 mkdir -p /app/data/.mcpjungle-managed/work /app/data/mcp-bundles 2>/dev/null || true

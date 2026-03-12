@@ -9,6 +9,7 @@ from typing import Any
 from .models import (
     chmod_if_exists,
     ensure_managed_entry,
+    is_path_within,
     is_sensitive_env_key,
     load_secret_material,
     new_registry_document,
@@ -232,6 +233,10 @@ class ManagedRegistry:
         secret_material_file = entry.get("secret_material_file")
         if secret_material_file:
             Path(secret_material_file).unlink(missing_ok=True)
+        for path_value in entry.get("managed_files", []):
+            path = Path(path_value)
+            if path.exists() and is_path_within(self.secrets_root, path):
+                path.unlink(missing_ok=True)
 
     @staticmethod
     def _write_json(path: Path, payload: dict[str, Any], mode: int) -> None:

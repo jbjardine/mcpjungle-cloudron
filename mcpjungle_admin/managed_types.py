@@ -173,6 +173,10 @@ def build_entry_from_install_args(
     healthcheck_spec = {"mode": health_mode}
     if args.health_url:
         healthcheck_spec["url"] = args.health_url
+    if getattr(args, "health_tool", None):
+        healthcheck_spec["tool_name"] = args.health_tool
+    if getattr(args, "health_input", None):
+        healthcheck_spec["tool_input"] = json.loads(args.health_input)
 
     entry = {
         "name": args.name,

@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -48,7 +49,8 @@ class RegistrySecretsTest(unittest.TestCase):
 
         secret_file = Path(entry["secret_material_file"])
         self.assertTrue(secret_file.exists())
-        self.assertEqual(secret_file.stat().st_mode & 0o777, 0o600)
+        if os.name != "nt":
+            self.assertEqual(secret_file.stat().st_mode & 0o777, 0o600)
         secret_payload = json.loads(secret_file.read_text())
         self.assertEqual(secret_payload["env"]["API_KEY"], "super-secret")
 

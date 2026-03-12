@@ -90,6 +90,12 @@ class MCPJungleClient:
     def list_tools(self, server_name: str) -> str:
         return self._run(["list", "tools", "--server", server_name]).stdout
 
+    def invoke_tool(self, tool_name: str, tool_input: Any | None = None) -> str:
+        args = ["invoke", tool_name]
+        if tool_input is not None:
+            args.extend(["--input", json.dumps(tool_input, separators=(",", ":"))])
+        return self._run(args).stdout
+
     def export_configurations(self, destination: str | Path) -> str:
         target = Path(destination)
         target.mkdir(parents=True, exist_ok=True)

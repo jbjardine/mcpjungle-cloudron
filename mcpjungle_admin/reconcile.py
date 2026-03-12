@@ -26,6 +26,9 @@ class Reconciler:
         self.health_checker = health_checker
 
     def reconcile(self, name: str | None = None) -> list[dict[str, Any]]:
+        return self._reconcile(name=name, force=False)
+
+    def _reconcile(self, name: str | None = None, *, force: bool) -> list[dict[str, Any]]:
         current_configs = self.client.get_server_configs()
         if name:
             entry = self.registry.require(name)
@@ -38,17 +41,22 @@ class Reconciler:
             if not entry.get("managed", True):
                 continue
             current_config = current_configs.get(entry["name"])
-            result = self._reconcile_entry(entry, current_config)
+            result = self._reconcile_entry(entry, current_config, force=force)
             self.registry.upsert(result["entry"])
             if result["status"] in {"healthy", "unchanged"}:
                 current_configs[entry["name"]] = server_config_from_entry(result["entry"])
             results.append(result)
         return results
 
+    def reconcile_force(self, name: str | None = None) -> list[dict[str, Any]]:
+        return self._reconcile(name=name, force=True)
+
     def _reconcile_entry(
         self,
         entry: dict[str, Any],
         current_config: dict[str, Any] | None,
+        *,
+        force: bool,
     ) -> dict[str, Any]:
         updated_entry = copy.deepcopy(entry)
         desired_config = server_config_from_entry(updated_entry)
@@ -57,7 +65,7 @@ class Reconciler:
             runtime_hash_from_config(current_config) if current_config is not None else None
         )
 
-        if current_hash == desired_hash:
+        if current_hash == desired_hash and not force:
             ok, message = self.health_checker.check_entry(updated_entry)
             updated_entry["last_applied_hash"] = desired_hash
             updated_entry["last_known_good"] = strip_sensitive_server_config(desired_config)

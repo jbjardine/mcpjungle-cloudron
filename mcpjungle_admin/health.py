@@ -24,6 +24,8 @@ class HealthChecker:
             return self.check_gateway()
         if mode == "http":
             return self._check_http(entry, spec)
+        if mode == "invoke_tool":
+            return self._check_invoke_tool(spec)
         if mode == "list_tools":
             return self._check_list_tools(entry["name"])
         return False, f"Unsupported healthcheck mode: {mode}"
@@ -58,3 +60,15 @@ class HealthChecker:
                 return False, f"HTTP healthcheck returned status {status}"
         except Exception as exc:  # pragma: no cover - urllib shapes differ
             return False, str(exc)
+
+    def _check_invoke_tool(self, spec: dict[str, Any]) -> tuple[bool, str]:
+        tool_name = spec.get("tool_name")
+        if not tool_name:
+            return False, "invoke_tool healthcheck requires tool_name"
+
+        tool_input = spec.get("tool_input")
+        try:
+            output = self.client.invoke_tool(tool_name, tool_input).strip()
+        except (MCPJungleClientError, RuntimeError) as exc:
+            return False, str(exc)
+        return True, output or f"Tool invoked successfully for {tool_name}"
