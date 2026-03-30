@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCPJungle - Starting...</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #e4e4e7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .boot-container {
+      text-align: center;
+      max-width: 420px;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: .25rem;
+      color: #fff;
+    }
+
+    .logo span {
+      color: #22c55e;
+    }
+
+    .version {
+      font-size: .8rem;
+      color: #71717a;
+      margin-bottom: 2rem;
+    }
+
+    .spinner-ring {
+      width: 48px;
+      height: 48px;
+      border: 3px solid #27272a;
+      border-top-color: #22c55e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status {
+      font-size: .95rem;
+      color: #a1a1aa;
+      margin-bottom: .5rem;
+    }
+
+    .substatus {
+      font-size: .8rem;
+      color: #52525b;
+      line-height: 1.6;
+    }
+
+    .progress-bar {
+      width: 200px;
+      height: 3px;
+      background: #27272a;
+      border-radius: 3px;
+      margin: 1.5rem auto 0;
+      overflow: hidden;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      background: #22c55e;
+      border-radius: 3px;
+      animation: progress 8s ease-out forwards;
+    }
+
+    @keyframes progress {
+      0%   { width: 0; }
+      20%  { width: 30%; }
+      60%  { width: 65%; }
+      80%  { width: 80%; }
+      100% { width: 92%; }
+    }
+
+    .retry-hint {
+      margin-top: 2rem;
+      font-size: .75rem;
+      color: #3f3f46;
+    }
+  </style>
+</head>
+<body>
+  <div class="boot-container">
+    <div class="logo">MCP<span>Jungle</span></div>
+    <div class="version">Gateway</div>
+
+    <div class="spinner-ring"></div>
+
+    <div class="status">Starting up...</div>
+    <div class="substatus">
+      Installing MCP servers and running health checks.<br>
+      This can take a few minutes on first boot.
+    </div>
+
+    <div class="progress-bar"><div class="fill"></div></div>
+
+    <div class="retry-hint">This page auto-refreshes every 5 seconds</div>
+  </div>
+
+  <script>
+    // Auto-refresh until the real app responds
+    setTimeout(function() { location.reload(); }, 5000);
+  </script>
+</body>
+</html>

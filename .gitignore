@@ -1,0 +1,34 @@
+# Build artifacts
+*.exe
+*.out
+*.log
+__pycache__/
+*.py[cod]
+
+# Local env
+.env
+.env.*
+
+# Secrets and keys
+*.pem
+*.key
+*.ppk
+.secrets/
+
+# Temporary files (may contain credentials)
+tmp/
+
+# MCP server registration configs (contain credentials!)
+# Exclude ALL json except CloudronManifest.json and CloudronVersions.json
+*.json
+!CloudronManifest.json
+!CloudronVersions.json
+
+# IDE and AI assistant files
+.claude/
+.cursor/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db

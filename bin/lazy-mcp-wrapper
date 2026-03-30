@@ -1,0 +1,110 @@
+#!/bin/bash
+#
+# lazy-mcp-wrapper
+#
+# Generates the lazy-mcp configuration from the current MCPJungle state
+# and prints the client command to connect via lazy-mcp.
+#
+# lazy-mcp is a client-side stdio proxy (npm: lazy-mcp, v2.2.5+).
+# It is NOT a server daemon - clients run it locally.
+#
+# Usage:
+#   ./lazy-mcp-wrapper generate [OPTIONS]   Generate servers.json config
+#   ./lazy-mcp-wrapper show-command         Print the npx command for clients
+#   ./lazy-mcp-wrapper --help               Show this help message
+#
+# Options (for generate):
+#   --gateway-url URL    MCPJungle gateway URL (default: http://127.0.0.1:8080)
+#   --output PATH        Output path for servers.json
+#   --no-groups          Use single gateway entry instead of per-server groups
+#
+
+set -euo pipefail
+
+GATEWAY_URL="${GATEWAY_URL:-http://127.0.0.1:8080}"
+CONFIG_PATH="${LAZY_MCP_CONFIG:-/app/data/.mcpjungle-managed/lazy-mcp-servers.json}"
+USE_GROUPS="true"
+COMMAND="${1:-generate}"
+
+shift 2>/dev/null || true
+
+# Parse options
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --gateway-url)
+            GATEWAY_URL="$2"
+            shift 2
+            ;;
+        --output)
+            CONFIG_PATH="$2"
+            shift 2
+            ;;
+        --no-groups)
+            USE_GROUPS="false"
+            shift
+            ;;
+        --help)
+            sed -n '/^# Usage:/,/^$/p' "$0" | sed 's/^# //'
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+case "$COMMAND" in
+    generate)
+        echo "==> Generating lazy-mcp config..."
+        echo "    Gateway URL: $GATEWAY_URL"
+        echo "    Output: $CONFIG_PATH"
+        echo "    Tool Groups: $USE_GROUPS"
+
+        ARGS="--gateway-url $GATEWAY_URL"
+        if [ "$USE_GROUPS" = "false" ]; then
+            ARGS="$ARGS --no-groups"
+        fi
+
+        python3 -c "
+from mcpjungle_admin.lazy_mcp import generate_lazy_mcp_config
+from mcpjungle_admin.mcpjungle_client import MCPJungleClient
+from pathlib import Path
+import sys
+
+gateway_url = '$GATEWAY_URL'
+use_groups = $( [ "$USE_GROUPS" = "true" ] && echo "True" || echo "False" )
+output = Path('$CONFIG_PATH')
+
+server_names = None
+if use_groups:
+    try:
+        client = MCPJungleClient(registry_url=gateway_url)
+        configs = client.get_server_configs()
+        server_names = sorted(configs.keys())
+    except Exception as e:
+        print(f'Warning: could not list servers: {e}', file=sys.stderr)
+
+config = generate_lazy_mcp_config(
+    gateway_url=gateway_url,
+    server_names=server_names,
+    use_tool_groups=use_groups,
+    output_path=output,
+)
+print(f'Generated config with {len(config[\"servers\"])} server entries')
+"
+        echo ""
+        echo "==> Clients can connect with:"
+        echo "    npx lazy-mcp@latest --config $CONFIG_PATH"
+        ;;
+
+    show-command)
+        echo "npx lazy-mcp@latest --config $CONFIG_PATH"
+        ;;
+
+    *)
+        echo "Unknown command: $COMMAND" >&2
+        echo "Usage: $0 {generate|show-command} [OPTIONS]" >&2
+        exit 1
+        ;;
+esac

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a7a3a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d4f24;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ade80;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#22c55e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="4" y="4" width="248" height="248" rx="48" ry="48" fill="url(#bg)" />
+
+  <!-- Subtle inner border -->
+  <rect x="4" y="4" width="248" height="248" rx="48" ry="48" fill="none" stroke="#2dd664" stroke-width="1.5" opacity="0.3" />
+
+  <!-- Central hub node -->
+  <circle cx="128" cy="118" r="28" fill="url(#glow)" opacity="0.95" />
+  <circle cx="128" cy="118" r="20" fill="#0d4f24" opacity="0.6" />
+  <circle cx="128" cy="118" r="12" fill="url(#glow)" />
+
+  <!-- Connection lines to outer nodes -->
+  <!-- Top -->
+  <line x1="128" y1="90" x2="128" y2="48" stroke="#4ade80" stroke-width="3" opacity="0.7" />
+  <!-- Top-right -->
+  <line x1="148" y1="100" x2="188" y2="60" stroke="#4ade80" stroke-width="3" opacity="0.7" />
+  <!-- Right -->
+  <line x1="156" y1="118" x2="200" y2="118" stroke="#4ade80" stroke-width="3" opacity="0.7" />
+  <!-- Bottom-right -->
+  <line x1="148" y1="136" x2="185" y2="170" stroke="#4ade80" stroke-width="3" opacity="0.7" />
+  <!-- Bottom-left -->
+  <line x1="108" y1="136" x2="71" y2="170" stroke="#4ade80" stroke-width="3" opacity="0.7" />
+  <!-- Left -->
+  <line x1="100" y1="118" x2="56" y2="118" stroke="#4ade80" stroke-width="3" opacity="0.7" />
+  <!-- Top-left -->
+  <line x1="108" y1="100" x2="68" y2="60" stroke="#4ade80" stroke-width="3" opacity="0.7" />
+
+  <!-- Outer nodes (MCP servers) -->
+  <circle cx="128" cy="44" r="12" fill="#4ade80" opacity="0.9" />
+  <circle cx="192" cy="56" r="12" fill="#4ade80" opacity="0.9" />
+  <circle cx="204" cy="118" r="12" fill="#4ade80" opacity="0.9" />
+  <circle cx="189" cy="174" r="12" fill="#4ade80" opacity="0.9" />
+  <circle cx="67" cy="174" r="12" fill="#4ade80" opacity="0.9" />
+  <circle cx="52" cy="118" r="12" fill="#4ade80" opacity="0.9" />
+  <circle cx="64" cy="56" r="12" fill="#4ade80" opacity="0.9" />
+
+  <!-- Small inner dots on outer nodes -->
+  <circle cx="128" cy="44" r="5" fill="#0d4f24" opacity="0.5" />
+  <circle cx="192" cy="56" r="5" fill="#0d4f24" opacity="0.5" />
+  <circle cx="204" cy="118" r="5" fill="#0d4f24" opacity="0.5" />
+  <circle cx="189" cy="174" r="5" fill="#0d4f24" opacity="0.5" />
+  <circle cx="67" cy="174" r="5" fill="#0d4f24" opacity="0.5" />
+  <circle cx="52" cy="118" r="5" fill="#0d4f24" opacity="0.5" />
+  <circle cx="64" cy="56" r="5" fill="#0d4f24" opacity="0.5" />
+
+  <!-- Text "MCP" in center hub -->
+  <text x="128" y="123" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" fill="white" letter-spacing="1">MCP</text>
+
+  <!-- "JUNGLE" text at bottom -->
+  <text x="128" y="218" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="bold" fill="#4ade80" letter-spacing="4">JUNGLE</text>
+
+  <!-- Small decorative leaves -->
+  <path d="M98 82 Q88 70 82 78 Q88 74 98 82Z" fill="#22c55e" opacity="0.6" />
+  <path d="M158 82 Q168 70 174 78 Q168 74 158 82Z" fill="#22c55e" opacity="0.6" />
+</svg>
