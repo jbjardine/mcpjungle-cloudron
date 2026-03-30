@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCPJungle Admin</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================== */
+    /* Design Tokens                                                      */
+    /* ================================================================== */
+    :root {
+      /* Palette - Developer Tool / OLED Dark */
+      --bg:          #0F172A;
+      --surface:     #1E293B;
+      --surface-alt: #334155;
+      --border:      #475569;
+      --text:        #F8FAFC;
+      --text-dim:    #CBD5E1;
+      --text-muted:  #94A3B8;
+
+      /* Brand / accents */
+      --brand:       #22C55E;
+      --brand-dim:   #15803D;
+      --brand-bg:    rgba(34,197,94,.12);
+      --danger:      #EF4444;
+      --danger-dim:  #991B1B;
+      --danger-bg:   rgba(239,68,68,.12);
+      --warn:        #F59E0B;
+      --info:        #3B82F6;
+
+      /* Toast */
+      --toast-ok:    #166534;
+      --toast-err:   #7F1D1D;
+
+      /* Typography */
+      --font-sans:   'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      --font-mono:   'JetBrains Mono', 'Fira Code', monospace;
+
+      /* Spacing scale */
+      --sp-xs: .25rem;
+      --sp-sm: .5rem;
+      --sp-md: 1rem;
+      --sp-lg: 1.5rem;
+      --sp-xl: 2rem;
+
+      /* Radii */
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+
+      /* Z-index scale */
+      --z-card:   10;
+      --z-header: 50;
+      --z-dialog: 100;
+      --z-toast:  9999;
+
+      /* Transitions */
+      --t-fast: .15s ease;
+      --t-med:  .25s ease;
+    }
+
+    /* ================================================================== */
+    /* Reset & Base                                                       */
+    /* ================================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ================================================================== */
+    /* Header                                                             */
+    /* ================================================================== */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: var(--z-header);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-md);
+      padding: .75rem 1.5rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      font-weight: 700;
+      font-size: 1.1rem;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      letter-spacing: -.02em;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--r-sm);
+    }
+
+    .brand small {
+      font-weight: 400;
+      opacity: .5;
+      font-size: .75rem;
+      font-family: var(--font-sans);
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      font-size: .85rem;
+      color: var(--text-muted);
+    }
+
+    /* ================================================================== */
+    /* Status dots                                                        */
+    /* ================================================================== */
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-green  { background: var(--brand);  box-shadow: 0 0 6px var(--brand); }
+    .dot-blue   { background: var(--info);   box-shadow: 0 0 6px var(--info); animation: pulse 2s infinite; }
+    .dot-red    { background: var(--danger);  box-shadow: 0 0 6px var(--danger); }
+    .dot-yellow { background: var(--warn);   box-shadow: 0 0 6px var(--warn); }
+    .dot-grey   { background: var(--text-muted); }
+
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+    .dot-lg { width: 28px; height: 28px; }
+
+    /* ================================================================== */
+    /* Layout                                                             */
+    /* ================================================================== */
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: var(--sp-lg) var(--sp-md);
+    }
+
+    /* ================================================================== */
+    /* Tab Navigation                                                     */
+    /* ================================================================== */
+    .tabs {
+      display: flex;
+      gap: var(--sp-xs);
+      border-bottom: 2px solid var(--surface-alt);
+      margin-bottom: var(--sp-lg);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      padding: .5rem .9rem;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: .875rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--t-fast), border-color var(--t-fast);
+    }
+
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--brand);
+      border-bottom-color: var(--brand);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ================================================================== */
+    /* Buttons                                                            */
+    /* ================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-xs);
+      padding: .45rem .9rem;
+      border: 1px solid transparent;
+      border-radius: var(--r-sm);
+      font-family: var(--font-sans);
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--t-fast), border-color var(--t-fast), opacity var(--t-fast);
+      line-height: 1.4;
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-brand {
+      background: var(--brand-dim);
+      border-color: var(--brand-dim);
+      color: #fff;
+    }
+    .btn-brand:hover:not(:disabled) { background: var(--brand); border-color: var(--brand); }
+
+    .btn-danger {
+      background: var(--danger-dim);
+      border-color: var(--danger-dim);
+      color: #fff;
+    }
+    .btn-danger:hover:not(:disabled) { background: var(--danger); border-color: var(--danger); }
+
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-dim);
+    }
+    .btn-outline:hover:not(:disabled) { border-color: var(--text-muted); color: var(--text); }
+
+    .btn-sm { padding: .25rem .6rem; font-size: .8rem; }
+
+    .btn-row {
+      display: flex;
+      gap: var(--sp-sm);
+      flex-wrap: wrap;
+      margin-bottom: var(--sp-md);
+    }
+
+    /* ================================================================== */
+    /* Toggle Switch (Enable/Disable)                                     */
+    /* ================================================================== */
+    .toggle {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .toggle input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      width: 36px;
+      height: 20px;
+      border-radius: 999px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      transition: background var(--t-fast), border-color var(--t-fast);
+      position: relative;
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: transform var(--t-fast), background var(--t-fast);
+    }
+
+    .toggle input:checked + .toggle-track {
+      background: var(--brand-dim);
+      border-color: var(--brand);
+    }
+    .toggle input:checked + .toggle-track::after {
+      transform: translateX(16px);
+      background: var(--brand);
+    }
+
+    .toggle input:focus-visible + .toggle-track {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
+    /* ================================================================== */
+    /* Server Card Grid                                                   */
+    /* ================================================================== */
+    .server-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: var(--sp-md);
+    }
+
+    .server-card {
+      background: var(--surface);
+      border-radius: var(--r-md);
+      padding: 1rem 1.15rem;
+      cursor: pointer;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+      border: 1px solid transparent;
+      position: relative;
+    }
+
+    .server-card:hover { border-color: var(--brand); }
+    .server-card.expanded {
+      border-color: var(--brand);
+      grid-column: 1 / -1;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      margin-bottom: .35rem;
+      padding-right: 3.25rem; /* room for toggle switch */
+    }
+
+    .card-name {
+      font-weight: 700;
+      font-size: .95rem;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-name.disabled { opacity: .45; text-decoration: line-through; }
+
+    .tools-badge {
+      font-size: .7rem;
+      padding: .1rem .45rem;
+      background: var(--brand-bg);
+      color: var(--brand);
+      border-radius: 999px;
+      font-weight: 600;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+    }
+
+    .card-desc {
+      font-size: .84rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: var(--sp-sm);
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+      font-size: .78rem;
+      color: var(--text-muted);
+    }
+
+    .tag {
+      padding: .05rem .4rem;
+      background: var(--bg);
+      border-radius: 4px;
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-family: var(--font-mono);
+    }
+
+    .card-actions {
+      position: absolute;
+      top: .65rem;
+      right: 3.5rem;
+      opacity: 0;
+      transition: opacity var(--t-fast);
+      display: flex;
+      gap: var(--sp-xs);
+    }
+    .server-card:hover .card-actions { opacity: 1; }
+    .server-card:hover .tools-badge { opacity: 0; }
+
+    .card-toggle {
+      position: absolute;
+      top: .75rem;
+      right: .75rem;
+    }
+
+    .card-detail {
+      margin-top: var(--sp-md);
+      padding-top: var(--sp-md);
+      border-top: 1px solid var(--bg);
+    }
+
+    .card-detail dl {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: .2rem .75rem;
+    }
+
+    .card-detail dt {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: .84rem;
+    }
+
+    .card-detail dd {
+      font-size: .84rem;
+      word-break: break-all;
+    }
+
+    .card-detail .mono { font-family: var(--font-mono); font-size: .8rem; }
+    .card-detail .err  { color: var(--danger); }
+
+    /* ================================================================== */
+    /* Health Section                                                     */
+    /* ================================================================== */
+    .health-hero {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      padding: var(--sp-lg);
+      border-radius: var(--r-md);
+      background: var(--surface);
+      margin-bottom: var(--sp-lg);
+    }
+
+    .health-hero h3 { font-size: 1.1rem; }
+    .health-hero p  { color: var(--text-muted); font-size: .875rem; }
+
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--sp-md);
+    }
+
+    .health-card {
+      background: var(--surface);
+      border-radius: var(--r-md);
+      padding: var(--sp-md) 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-sm);
+    }
+
+    .health-card .card-head {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-sm);
+    }
+    .health-card .card-head strong { flex: 1; }
+    .health-card .meta { font-size: .8rem; color: var(--text-muted); }
+    .health-card .err  { font-size: .8rem; color: var(--danger); word-break: break-word; }
+
+    /* ================================================================== */
+    /* Credentials                                                        */
+    /* ================================================================== */
+    .cred-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: var(--sp-sm) 0;
+      border-bottom: 1px solid var(--surface-alt);
+    }
+    .cred-row:last-child { border-bottom: none; }
+    .cred-key   { font-family: var(--font-mono); font-weight: 600; min-width: 140px; font-size: .85rem; }
+    .cred-value { font-family: var(--font-mono); color: var(--text-muted); flex: 1; font-size: .85rem; }
+    .cred-type  {
+      font-size: .72rem;
+      padding: .1rem .35rem;
+      background: var(--surface-alt);
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+
+    /* ================================================================== */
+    /* API Keys                                                           */
+    /* ================================================================== */
+    .apikey-card {
+      background: var(--surface);
+      border-radius: var(--r-md);
+      padding: var(--sp-md) 1.15rem;
+      display: flex;
+      align-items: center;
+      gap: var(--sp-md);
+      margin-bottom: var(--sp-sm);
+    }
+
+    .apikey-card strong { flex: 1; font-family: var(--font-mono); }
+    .apikey-card .meta  { font-size: .8rem; color: var(--text-muted); }
+
+    .token-display {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: var(--sp-sm) var(--sp-md);
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      word-break: break-all;
+      margin: var(--sp-md) 0;
+      position: relative;
+    }
+
+    .token-display .copy-btn {
+      position: absolute;
+      top: var(--sp-xs);
+      right: var(--sp-xs);
+    }
+
+    /* ================================================================== */
+    /* Tables (Audit)                                                     */
+    /* ================================================================== */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .85rem;
+    }
+
+    th, td {
+      padding: .55rem .75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--surface-alt);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    td { color: var(--text-dim); }
+    td.ts { color: var(--text-muted); font-size: .8rem; font-family: var(--font-mono); }
+    td.mono { font-family: var(--font-mono); font-size: .82rem; }
+
+    /* ================================================================== */
+    /* Form controls                                                      */
+    /* ================================================================== */
+    input, select, textarea {
+      width: 100%;
+      padding: .5rem .75rem;
+      font-family: var(--font-sans);
+      font-size: .9rem;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      outline: none;
+      transition: border-color var(--t-fast);
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: var(--brand); }
+    input::placeholder, textarea::placeholder { color: var(--text-muted); }
+
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      margin-bottom: var(--sp-xs);
+    }
+
+    label small { font-weight: 400; color: var(--text-muted); }
+
+    .form-group { margin-bottom: var(--sp-md); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-md);
+    }
+
+    /* ================================================================== */
+    /* Dialogs                                                            */
+    /* ================================================================== */
+    dialog {
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      background: var(--surface);
+      color: var(--text);
+      padding: var(--sp-xl);
+      max-width: 540px;
+      width: 92vw;
+      margin: auto; /* ensure centered even with Cloudron sidebar */
+    }
+
+    dialog::backdrop { background: rgba(0,0,0,.65); }
+    dialog h3 { margin-bottom: .75rem; font-family: var(--font-mono); }
+
+    .dialog-actions {
+      display: flex;
+      gap: var(--sp-sm);
+      justify-content: flex-end;
+      margin-top: var(--sp-lg);
+    }
+
+    /* ================================================================== */
+    /* Toasts                                                             */
+    /* ================================================================== */
+    #toast-container {
+      position: fixed;
+      top: var(--sp-md);
+      right: var(--sp-md);
+      z-index: var(--z-toast);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-sm);
+      max-width: 400px;
+    }
+
+    .toast {
+      padding: .65rem 1rem;
+      border-radius: var(--r-sm);
+      font-size: .84rem;
+      color: #fff;
+      animation: toast-in var(--t-med);
+      word-break: break-word;
+    }
+    .toast-ok  { background: var(--toast-ok); }
+    .toast-err { background: var(--toast-err); }
+    .toast.fade-out { animation: toast-out .3s forwards; }
+
+    @keyframes toast-in  { from { opacity:0; transform:translateX(40px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes toast-out { from { opacity:1; } to { opacity:0; transform:translateY(-10px); } }
+
+    /* ================================================================== */
+    /* Utilities                                                          */
+    /* ================================================================== */
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--text-muted);
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    /* ================================================================== */
+    /* Responsive                                                         */
+    /* ================================================================== */
+    @media (max-width: 640px) {
+      .header { padding: .6rem 1rem; }
+      .container { padding: var(--sp-md) var(--sp-sm); }
+      .card-detail dl { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .server-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================================================================ -->
+  <!-- Header                                                           -->
+  <!-- ================================================================ -->
+  <header class="header">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1a7a3a"/><stop offset="100%" stop-color="#0d4f24"/></linearGradient></defs><rect x="4" y="4" width="248" height="248" rx="48" fill="url(#bg)"/><circle cx="128" cy="118" r="28" fill="#4ade80" opacity=".95"/><circle cx="128" cy="118" r="20" fill="#0d4f24" opacity=".6"/><circle cx="128" cy="118" r="12" fill="#4ade80"/><line x1="128" y1="90" x2="128" y2="48" stroke="#4ade80" stroke-width="3" opacity=".7"/><line x1="148" y1="100" x2="188" y2="60" stroke="#4ade80" stroke-width="3" opacity=".7"/><line x1="156" y1="118" x2="200" y2="118" stroke="#4ade80" stroke-width="3" opacity=".7"/><line x1="148" y1="136" x2="185" y2="170" stroke="#4ade80" stroke-width="3" opacity=".7"/><line x1="108" y1="136" x2="71" y2="170" stroke="#4ade80" stroke-width="3" opacity=".7"/><line x1="100" y1="118" x2="56" y2="118" stroke="#4ade80" stroke-width="3" opacity=".7"/><line x1="108" y1="100" x2="68" y2="60" stroke="#4ade80" stroke-width="3" opacity=".7"/><circle cx="128" cy="44" r="12" fill="#4ade80" opacity=".9"/><circle cx="192" cy="56" r="12" fill="#4ade80" opacity=".9"/><circle cx="204" cy="118" r="12" fill="#4ade80" opacity=".9"/><circle cx="189" cy="174" r="12" fill="#4ade80" opacity=".9"/><circle cx="67" cy="174" r="12" fill="#4ade80" opacity=".9"/><circle cx="52" cy="118" r="12" fill="#4ade80" opacity=".9"/><circle cx="64" cy="56" r="12" fill="#4ade80" opacity=".9"/><text x="128" y="123" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="white" letter-spacing="1">MCP</text><text x="128" y="218" text-anchor="middle" font-family="Arial" font-size="22" font-weight="bold" fill="#4ade80" letter-spacing="4">JUNGLE</text></svg>
+      MCPJungle <small id="app-version">Admin</small>
+    </div>
+    <div class="header-status">
+      <span class="dot dot-grey" id="header-dot"></span>
+      <span id="header-status-text">Connecting...</span>
+    </div>
+  </header>
+
+  <!-- ================================================================ -->
+  <!-- Main Content                                                     -->
+  <!-- ================================================================ -->
+  <main class="container">
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="servers" role="tab" aria-selected="true">Servers</button>
+      <button class="tab-btn" data-tab="credentials" role="tab" aria-selected="false">Credentials</button>
+      <button class="tab-btn" data-tab="apikeys" role="tab" aria-selected="false">API Keys</button>
+      <button class="tab-btn" data-tab="health" role="tab" aria-selected="false">Health</button>
+      <button class="tab-btn" data-tab="audit" role="tab" aria-selected="false">Audit Log</button>
+    </nav>
+
+    <!-- Servers -->
+    <section id="tab-servers" class="tab-panel active" role="tabpanel">
+      <div class="btn-row">
+        <button class="btn btn-brand" id="btn-add-server">+ Add Server</button>
+      </div>
+      <div class="server-grid" id="servers-grid">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </section>
+
+    <!-- Credentials -->
+    <section id="tab-credentials" class="tab-panel" role="tabpanel">
+      <div class="form-group">
+        <label for="cred-server-select">Server</label>
+        <select id="cred-server-select">
+          <option value="">-- Select a server --</option>
+        </select>
+      </div>
+      <div id="cred-list-container" style="display:none;">
+        <h4 style="margin-bottom:.75rem;">Credentials</h4>
+        <div id="cred-list"></div>
+        <hr style="border-color:var(--surface-alt); margin:1.25rem 0;">
+        <h4 style="margin-bottom:.75rem;">Set Credential</h4>
+        <form id="cred-form" autocomplete="off">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Key</label>
+              <input type="text" name="key" placeholder="API_KEY" required>
+            </div>
+            <div class="form-group">
+              <label>Value</label>
+              <input type="password" name="value" placeholder="secret-value" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-brand">Set Credential</button>
+        </form>
+      </div>
+      <div id="cred-empty" class="empty-state">Select a server to manage credentials.</div>
+    </section>
+
+    <!-- API Keys -->
+    <section id="tab-apikeys" class="tab-panel" role="tabpanel">
+      <div class="btn-row">
+        <button class="btn btn-brand" id="btn-create-api-key">+ Create API Key</button>
+      </div>
+      <div id="apikeys-list"></div>
+      <div id="apikeys-empty" class="empty-state">Loading API keys...</div>
+    </section>
+
+    <!-- Health -->
+    <section id="tab-health" class="tab-panel" role="tabpanel">
+      <div class="health-hero">
+        <span class="dot dot-lg dot-grey" id="health-big-dot"></span>
+        <div>
+          <h3 id="health-title">Loading...</h3>
+          <p id="health-msg">Checking gateway status</p>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-brand" id="btn-reconcile">Reconcile Now</button>
+        <span style="font-size:.8rem;color:var(--text-muted);align-self:center;" id="health-last-check"></span>
+      </div>
+      <h4 style="margin-bottom:.75rem;">Server Health</h4>
+      <div class="health-grid" id="health-grid">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </section>
+
+    <!-- Audit Log -->
+    <section id="tab-audit" class="tab-panel" role="tabpanel">
+      <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.75rem;">Auto-refreshes every 30 seconds.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Timestamp</th><th>User</th><th>Action</th><th>Target</th><th>Detail</th></tr>
+          </thead>
+          <tbody id="audit-tbody">
+            <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="text-align:center; margin-top:var(--sp-md);">
+        <button id="btn-load-more-audit" class="btn btn-outline btn-sm" style="display:none;">Load more</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================================================================ -->
+  <!-- Add Server Dialog                                                -->
+  <!-- ================================================================ -->
+  <dialog id="dlg-add-server">
+    <h3>Add Server</h3>
+    <form id="add-server-form" autocomplete="off">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="my-mcp-server" required pattern="[A-Za-z0-9_.\-]+">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Type</label>
+          <select name="type" required>
+            <option value="">-- Select type --</option>
+            <option value="npm_package">npx (Node.js package)</option>
+            <option value="uvx_package">uvx (Python package)</option>
+            <option value="custom_command">Docker / Binary</option>
+            <option value="http_remote">SSE / Streamable HTTP</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Transport</label>
+          <select name="transport">
+            <option value="stdio">stdio</option>
+            <option value="sse">SSE</option>
+            <option value="streamable-http">Streamable HTTP</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Package / Image</label>
+        <input type="text" name="package" placeholder="@org/mcp-server or image:tag">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" name="description" placeholder="What does this server do?">
+      </div>
+      <div class="form-group">
+        <label>URL <small>(for SSE / Streamable HTTP)</small></label>
+        <input type="url" name="url" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>Environment variables <small>(KEY=VALUE, one per line)</small></label>
+        <textarea name="env" rows="3" placeholder="API_KEY=sk-...&#10;REGION=us-east-1"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Bridge port <small>(optional - for MCP servers with a built-in HTTP endpoint)</small></label>
+        <input type="number" name="bridge_port" min="1024" max="65535" placeholder="e.g. 8083">
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-outline" id="btn-cancel-add">Cancel</button>
+        <button type="submit" class="btn btn-brand">Add Server</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ================================================================ -->
+  <!-- Edit Server Dialog                                               -->
+  <!-- ================================================================ -->
+  <dialog id="dlg-edit-server">
+    <h3>Edit Server: <span id="edit-server-name"></span></h3>
+    <form id="edit-server-form" autocomplete="off">
+      <input type="hidden" name="name">
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" name="description" placeholder="What does this server do?">
+      </div>
+      <div class="form-group">
+        <label>URL <small>(for SSE / Streamable HTTP)</small></label>
+        <input type="url" name="url" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>Environment variables <small>(KEY=VALUE, one per line - merges with existing)</small></label>
+        <textarea name="env" rows="3" placeholder="API_KEY=sk-...&#10;REGION=us-east-1"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Bridge port <small>(leave empty to remove)</small></label>
+        <input type="number" name="bridge_port" min="1024" max="65535" placeholder="e.g. 8083">
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-outline" id="btn-cancel-edit">Cancel</button>
+        <button type="submit" class="btn btn-brand">Save Changes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ================================================================ -->
+  <!-- Confirm Delete Dialog                                            -->
+  <!-- ================================================================ -->
+  <dialog id="dlg-confirm-delete">
+    <h3 id="delete-dlg-title">Delete Server</h3>
+    <p style="margin-bottom:var(--sp-md);color:var(--text-dim);">
+      Are you sure you want to delete <strong id="delete-target-name"></strong>?
+      This action cannot be undone.
+    </p>
+    <div class="dialog-actions">
+      <button type="button" class="btn btn-outline" id="btn-cancel-delete">Cancel</button>
+      <button type="button" class="btn btn-danger" id="btn-confirm-delete">Delete</button>
+    </div>
+  </dialog>
+
+  <!-- ================================================================ -->
+  <!-- Create API Key Dialog                                            -->
+  <!-- ================================================================ -->
+  <dialog id="dlg-create-apikey">
+    <h3>Create API Key</h3>
+    <form id="create-apikey-form" autocomplete="off">
+      <div class="form-group">
+        <label>Client name</label>
+        <input type="text" name="name" placeholder="claude-code, cursor, etc." required pattern="[A-Za-z0-9_.\-]+">
+      </div>
+      <div id="apikey-result" style="display:none;">
+        <p style="font-size:.85rem;color:var(--warn);margin-bottom:var(--sp-sm);">
+          Save this token now. It will not be shown again.
+        </p>
+        <div class="token-display">
+          <code id="apikey-token-value"></code>
+          <button type="button" class="btn btn-outline btn-sm copy-btn" id="btn-copy-token">Copy</button>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-outline" id="btn-close-apikey-dlg">Cancel</button>
+        <button type="submit" class="btn btn-brand" id="btn-submit-apikey">Create</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- ================================================================ -->
+  <!-- JavaScript                                                       -->
+  <!-- ================================================================ -->
+  <script>
+  (function () {
+    "use strict";
+
+    // ── Config ───────────────────────────────────────────────────────
+    var API = "/_api";
+    var ADMIN_TOKEN = "__ADMIN_TOKEN__";
+    var HEALTH_INTERVAL = 30000;
+    var AUDIT_INTERVAL  = 30000;
+    var AUDIT_PAGE_SIZE = 50;
+    var INSTALL_POLL    = 5000;
+
+    // ── State ────────────────────────────────────────────────────────
+    var state = {
+      servers: [],
+      health: null,
+      auditEntries: [],
+      auditOffset: 0,
+      expandedServer: null,
+      deleteTarget: null,
+      deleteCallback: null,
+    };
+
+    // ── DOM helpers ──────────────────────────────────────────────────
+    function $(sel)  { return document.querySelector(sel); }
+    function $$(sel) { return document.querySelectorAll(sel); }
+    function txt(s)  { return document.createTextNode(s == null ? "" : String(s)); }
+
+    function el(tag, o) {
+      o = o || {};
+      var n = document.createElement(tag);
+      if (o.cls)      n.className = o.cls;
+      if (o.text)     n.textContent = o.text;
+      if (o.attrs)    Object.keys(o.attrs).forEach(function(k) { n.setAttribute(k, o.attrs[k]); });
+      if (o.style)    n.style.cssText = o.style;
+      if (o.children) o.children.forEach(function(c) { if (c) n.appendChild(c); });
+      if (o.onclick)  n.addEventListener("click", o.onclick);
+      if (o.onchange) n.addEventListener("change", o.onchange);
+      return n;
+    }
+
+    function clearEl(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+    // ── Formatting helpers ───────────────────────────────────────────
+    function fmtTime(iso) {
+      if (!iso) return "--";
+      try { return new Date(iso).toLocaleString(); } catch (_) { return iso; }
+    }
+
+    function relativeTime(iso) {
+      if (!iso) return "--";
+      try {
+        var diff = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+        if (diff < 5)     return "just now";
+        if (diff < 60)    return diff + "s ago";
+        if (diff < 3600)  return Math.floor(diff / 60) + "m ago";
+        if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+        return Math.floor(diff / 86400) + "d ago";
+      } catch (_) { return iso; }
+    }
+
+    function dotClass(status) {
+      if (status === "healthy" || status === "ok") return "dot-green";
+      if (status === "installing" || status === "pending") return "dot-blue";
+      if (status === "degraded" || status === "warning") return "dot-yellow";
+      if (status === "error" || status === "unhealthy" || status === "install_failed") return "dot-red";
+      return "dot-grey";
+    }
+
+    var TYPE_LABELS = {
+      npm_package: "npx", uvx_package: "uvx",
+      http_remote: "http", custom_command: "custom", local_bundle: "bundle",
+    };
+    function fmtType(t) { return TYPE_LABELS[t] || t; }
+
+    function parseEnv(text) {
+      var env = {};
+      if (!text) return env;
+      text.split("\n").forEach(function(line) {
+        line = line.trim();
+        if (!line || line[0] === "#") return;
+        var i = line.indexOf("=");
+        if (i < 1) return;
+        env[line.substring(0, i).trim()] = line.substring(i + 1).trim();
+      });
+      return env;
+    }
+
+    // ── Toast ────────────────────────────────────────────────────────
+    function toast(msg, type) {
+      var t = el("div", { cls: "toast toast-" + (type || "ok"), text: msg });
+      $("#toast-container").appendChild(t);
+      setTimeout(function() {
+        t.classList.add("fade-out");
+        setTimeout(function() { t.remove(); }, 350);
+      }, 4000);
+    }
+
+    // ── API wrapper ──────────────────────────────────────────────────
+    function api(method, path, body) {
+      var headers = { "Content-Type": "application/json" };
+      if (ADMIN_TOKEN && ADMIN_TOKEN.length > 20) {
+        headers["Authorization"] = "Bearer " + ADMIN_TOKEN;
+      }
+      var opts = { method: method, headers: headers };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      return fetch(API + path, opts).then(function(res) {
+        if (!res.ok) {
+          return res.text().then(function(t) {
+            try { var d = JSON.parse(t); throw new Error(d.error || "Request failed (" + res.status + ")"); }
+            catch(e) { if (e instanceof SyntaxError) throw new Error("API error (" + res.status + ")"); throw e; }
+          });
+        }
+        return res.json();
+      });
+    }
+
+    // ── Tab switching ────────────────────────────────────────────────
+    function switchTab(id) {
+      $$(".tab-btn").forEach(function(b) {
+        var active = b.getAttribute("data-tab") === id;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      $$(".tab-panel").forEach(function(p) {
+        p.classList.toggle("active", p.id === "tab-" + id);
+      });
+      if (id === "servers")     loadServers();
+      if (id === "credentials") loadCredServerList();
+      if (id === "apikeys")     loadApiKeys();
+      if (id === "health")      loadHealth();
+      if (id === "audit")       { state.auditOffset = 0; loadAudit(true); }
+    }
+
+    $$(".tab-btn").forEach(function(b) {
+      b.addEventListener("click", function() { switchTab(b.getAttribute("data-tab")); });
+    });
+
+    // ================================================================
+    // SERVERS TAB
+    // ================================================================
+    function loadServers() {
+      api("GET", "/servers").then(function(data) {
+        state.servers = data.servers || [];
+        renderServers();
+        if (state.servers.some(function(s) { return s.status === "installing" || s.status === "pending"; })) {
+          startInstallPoll();
+        }
+      }).catch(function(err) { toast("Failed to load servers: " + err.message, "err"); });
+    }
+
+    function buildDetail(s) {
+      var wrap = el("div", { cls: "card-detail" });
+      var dl = document.createElement("dl");
+
+      function pair(label, value, cls) {
+        dl.appendChild(el("dt", { text: label }));
+        dl.appendChild(el("dd", { text: value || "--", cls: cls || "" }));
+      }
+
+      var dtS = el("dt", { text: "Status" });
+      var ddS = document.createElement("dd");
+      ddS.appendChild(el("span", { cls: "dot " + dotClass(s.status) }));
+      ddS.appendChild(txt(" " + (s.status || "unknown")));
+      dl.appendChild(dtS);
+      dl.appendChild(ddS);
+
+      if (s.last_error) {
+        dl.appendChild(el("dt", { text: "Last Error" }));
+        dl.appendChild(el("dd", { text: s.last_error, cls: "err" }));
+      }
+
+      pair("Created", fmtTime(s.created_at));
+      pair("Updated", fmtTime(s.updated_at));
+
+      var rt = s.runtime_spec || {};
+      if (rt.command) pair("Command", rt.command, "mono");
+      if (rt.args && rt.args.length) pair("Args", rt.args.join(" "), "mono");
+      if (rt.url) pair("URL", rt.url, "mono");
+
+      var inst = s.install_spec || {};
+      if (inst.package) pair("Package", inst.package, "mono");
+      if (inst.version) pair("Version", inst.version, "mono");
+
+      if (s.secret_env_keys && s.secret_env_keys.length) {
+        pair("Secret Env", s.secret_env_keys.join(", "), "mono");
+      }
+      if (s.has_secret_bearer_token) pair("Bearer Token", "Configured");
+      if (s.bridge_port) {
+        pair("Bridge Port", String(s.bridge_port), "mono");
+        pair("Bridge URL", window.location.origin + "/bridge/" + s.name + "/", "mono");
+      }
+
+      wrap.appendChild(dl);
+      return wrap;
+    }
+
+    function renderServers() {
+      var grid = $("#servers-grid");
+      clearEl(grid);
+
+      if (state.servers.length === 0) {
+        grid.appendChild(el("div", { cls: "empty-state", text: 'No servers configured. Click "+ Add Server" to get started.' }));
+        return;
+      }
+
+      state.servers.forEach(function(s) {
+        var expanded = state.expandedServer === s.name;
+        var isEnabled = s.enabled !== false;
+
+        // Toggle switch
+        var toggleInput = el("input", {
+          attrs: {
+            type: "checkbox",
+            role: "switch",
+            "aria-label": (isEnabled ? "Disable " : "Enable ") + s.name,
+          },
+        });
+        toggleInput.checked = isEnabled;
+        var toggleTrack = el("span", { cls: "toggle-track" });
+        var toggleLabel = el("label", { cls: "toggle card-toggle", children: [toggleInput, toggleTrack] });
+
+        toggleInput.addEventListener("change", function(e) {
+          e.stopPropagation();
+          var action = e.target.checked ? "enable" : "disable";
+          api("POST", "/servers/" + encodeURIComponent(s.name) + "/" + action).then(function() {
+            toast(s.name + " " + action + "d");
+            loadServers();
+          }).catch(function(err) {
+            toast("Failed to " + action + ": " + err.message, "err");
+            e.target.checked = !e.target.checked;
+          });
+        });
+
+        toggleInput.addEventListener("click", function(e) { e.stopPropagation(); });
+        toggleLabel.addEventListener("click", function(e) { e.stopPropagation(); });
+
+        // Top row
+        var topChildren = [
+          el("span", { cls: "dot " + dotClass(s.status) }),
+          el("span", { cls: "card-name" + (isEnabled ? "" : " disabled"), text: s.name }),
+        ];
+        if (s.tool_count != null && s.tool_count > 0) {
+          topChildren.push(el("span", { cls: "tools-badge", text: s.tool_count + " tools" }));
+        }
+
+        // Hover action buttons
+        var actChildren = [];
+        if (s.consecutive_failures >= 3) {
+          actChildren.push(el("button", {
+            cls: "btn btn-outline btn-sm",
+            text: "Reset Breaker",
+            style: "color:var(--warn);border-color:var(--warn);",
+            onclick: function(e) {
+              e.stopPropagation();
+              api("POST", "/servers/" + encodeURIComponent(s.name) + "/reset-breaker").then(function() {
+                toast("Circuit breaker reset for " + s.name);
+                loadServers();
+              }).catch(function(err) { toast("Reset failed: " + err.message, "err"); });
+            },
+          }));
+        }
+        if (s.status === "install_failed" || s.status === "error") {
+          actChildren.push(el("button", {
+            cls: "btn btn-outline btn-sm",
+            text: "Reinstall",
+            onclick: function(e) {
+              e.stopPropagation();
+              api("POST", "/servers/" + encodeURIComponent(s.name) + "/reinstall").then(function() {
+                toast("Reinstall submitted for " + s.name);
+                loadServers();
+              }).catch(function(err) { toast("Reinstall failed: " + err.message, "err"); });
+            },
+          }));
+        }
+        actChildren.push(el("button", {
+          cls: "btn btn-outline btn-sm",
+          text: "Edit",
+          onclick: function(e) { e.stopPropagation(); openEditDialog(s); },
+        }));
+        actChildren.push(el("button", {
+          cls: "btn btn-danger btn-sm",
+          text: "Delete",
+          onclick: function(e) { e.stopPropagation(); openDeleteDialog(s.name); },
+        }));
+
+        var cardChildren = [
+          el("div", { cls: "card-top", children: topChildren }),
+          el("div", { cls: "card-desc", text: s.description || fmtType(s.managed_type) + " server" }),
+          el("div", {
+            cls: "card-meta",
+            children: [
+              el("span", { cls: "tag", text: s.transport || "stdio" }),
+              el("span", { cls: "tag", text: fmtType(s.managed_type) }),
+              s.bridge_port ? el("span", {
+                cls: "tag",
+                text: "/bridge/" + s.name + "/",
+                style: "color:var(--brand);cursor:pointer;",
+                onclick: function(e) {
+                  e.stopPropagation();
+                  var url = window.location.origin + "/bridge/" + s.name + "/";
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(function() { toast("Bridge URL copied: " + url); });
+                  }
+                },
+              }) : null,
+              s.consecutive_failures >= 3 ? el("span", { cls: "tag", text: "breaker:" + s.consecutive_failures, style: "color:var(--warn);" }) : null,
+              txt(relativeTime(s.updated_at)),
+            ],
+          }),
+          el("div", { cls: "card-actions", children: actChildren }),
+          toggleLabel,
+        ];
+
+        if (expanded) cardChildren.push(buildDetail(s));
+
+        grid.appendChild(el("div", {
+          cls: "server-card" + (expanded ? " expanded" : ""),
+          children: cardChildren,
+          onclick: function() {
+            state.expandedServer = (state.expandedServer === s.name) ? null : s.name;
+            renderServers();
+          },
+        }));
+      });
+    }
+
+    // Add Server dialog
+    var dlgAdd = $("#dlg-add-server");
+    $("#btn-add-server").addEventListener("click", function() {
+      $("#add-server-form").reset();
+      dlgAdd.showModal();
+    });
+    $("#btn-cancel-add").addEventListener("click", function() { dlgAdd.close(); });
+
+    $("#add-server-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      var f = e.target;
+      var body = {
+        name: f.name.value.trim(),
+        type: f.type.value,
+        package: f.package.value.trim() || undefined,
+        transport: f.transport.value,
+        description: f.description.value.trim() || undefined,
+        url: f.url.value.trim() || undefined,
+        env: parseEnv(f.env.value),
+        bridge_port: f.bridge_port.value ? parseInt(f.bridge_port.value, 10) : undefined,
+      };
+      Object.keys(body).forEach(function(k) { if (body[k] === undefined) delete body[k]; });
+      if (body.env && Object.keys(body.env).length === 0) delete body.env;
+
+      api("POST", "/servers", body).then(function() {
+        dlgAdd.close();
+        toast("Server \"" + body.name + "\" added successfully.");
+        loadServers();
+      }).catch(function(err) { toast("Failed to add server: " + err.message, "err"); });
+    });
+
+    // Edit Server dialog
+    var dlgEdit = $("#dlg-edit-server");
+    $("#btn-cancel-edit").addEventListener("click", function() { dlgEdit.close(); });
+
+    function openEditDialog(server) {
+      var f = $("#edit-server-form");
+      f.reset();
+      f.name.value = server.name;
+      $("#edit-server-name").textContent = server.name;
+      f.description.value = server.description || "";
+      var rs = server.runtime_spec || {};
+      f.url.value = rs.url || "";
+      // Show existing non-secret env vars
+      var env = rs.env || {};
+      var lines = [];
+      Object.keys(env).forEach(function(k) { lines.push(k + "=" + env[k]); });
+      f.env.value = lines.join("\n");
+      f.bridge_port.value = server.bridge_port || "";
+      dlgEdit.showModal();
+    }
+
+    $("#edit-server-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      var f = e.target;
+      var name = f.name.value;
+      var body = {
+        description: f.description.value.trim(),
+      };
+      if (f.url.value.trim()) body.url = f.url.value.trim();
+      var env = parseEnv(f.env.value);
+      if (env && Object.keys(env).length > 0) body.env = env;
+      if (f.bridge_port.value) {
+        body.bridge_port = parseInt(f.bridge_port.value, 10);
+      } else {
+        body.bridge_port = null;
+      }
+      api("PUT", "/servers/" + encodeURIComponent(name), body).then(function() {
+        dlgEdit.close();
+        toast("Server \"" + name + "\" updated.");
+        loadServers();
+      }).catch(function(err) { toast("Failed: " + err.message, "err"); });
+    });
+
+    // Delete / Revoke confirm dialog (shared)
+    var dlgDelete = $("#dlg-confirm-delete");
+
+    function openDeleteDialog(name) {
+      state.deleteTarget = name;
+      state.deleteCallback = function() {
+        api("DELETE", "/servers/" + encodeURIComponent(name)).then(function() {
+          toast("Server \"" + name + "\" deleted.");
+          state.expandedServer = null;
+          loadServers();
+        }).catch(function(err) { toast("Failed to delete server: " + err.message, "err"); });
+      };
+      $("#delete-dlg-title").textContent = "Delete Server";
+      $("#delete-target-name").textContent = name;
+      $("#btn-confirm-delete").textContent = "Delete";
+      dlgDelete.showModal();
+    }
+
+    function openRevokeDialog(name) {
+      state.deleteTarget = name;
+      state.deleteCallback = function() {
+        api("DELETE", "/api-keys/" + encodeURIComponent(name)).then(function() {
+          toast("API key revoked: " + name);
+          loadApiKeys();
+        }).catch(function(err) { toast("Failed: " + err.message, "err"); });
+      };
+      $("#delete-dlg-title").textContent = "Revoke API Key";
+      $("#delete-target-name").textContent = name;
+      $("#btn-confirm-delete").textContent = "Revoke";
+      dlgDelete.showModal();
+    }
+
+    $("#btn-cancel-delete").addEventListener("click", function() { dlgDelete.close(); });
+    $("#btn-confirm-delete").addEventListener("click", function() {
+      dlgDelete.close();
+      if (state.deleteCallback) state.deleteCallback();
+      state.deleteCallback = null;
+    });
+
+    // ================================================================
+    // CREDENTIALS TAB
+    // ================================================================
+    function loadCredServerList() {
+      api("GET", "/servers").then(function(data) {
+        var servers = data.servers || [];
+        var sel = $("#cred-server-select");
+        var cur = sel.value;
+        clearEl(sel);
+        sel.appendChild(el("option", { text: "-- Select a server --", attrs: { value: "" } }));
+        servers.forEach(function(s) {
+          sel.appendChild(el("option", {
+            text: s.name + " (" + (s.managed_type || "unknown") + ")",
+            attrs: { value: s.name },
+          }));
+        });
+        if (cur) sel.value = cur;
+        if (sel.value) loadCredentials(sel.value);
+        else showCredEmpty(true);
+      }).catch(function(err) { toast("Failed to load server list: " + err.message, "err"); });
+    }
+
+    function showCredEmpty(show) {
+      $("#cred-empty").style.display = show ? "block" : "none";
+      $("#cred-list-container").style.display = show ? "none" : "block";
+    }
+
+    $("#cred-server-select").addEventListener("change", function() {
+      this.value ? loadCredentials(this.value) : showCredEmpty(true);
+    });
+
+    function loadCredentials(server) {
+      showCredEmpty(false);
+      api("GET", "/servers/" + encodeURIComponent(server) + "/creds").then(function(data) {
+        renderCredentials(data.credentials || []);
+      }).catch(function(err) { toast("Failed to load credentials: " + err.message, "err"); });
+    }
+
+    function renderCredentials(creds) {
+      var c = $("#cred-list");
+      clearEl(c);
+      if (creds.length === 0) {
+        c.appendChild(el("p", { cls: "empty-state", text: "No credentials configured for this server.", style: "padding:1rem 0;" }));
+        return;
+      }
+      creds.forEach(function(cr) {
+        c.appendChild(el("div", {
+          cls: "cred-row",
+          children: [
+            el("span", { cls: "cred-key", text: cr.key }),
+            el("span", { cls: "cred-type", text: cr.type }),
+            el("span", { cls: "cred-value", text: cr.value }),
+          ],
+        }));
+      });
+    }
+
+    $("#cred-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      var server = $("#cred-server-select").value;
+      if (!server) { toast("Please select a server first.", "err"); return; }
+      var f = e.target;
+      var body = { key: f.key.value.trim(), value: f.value.value };
+      api("PUT", "/servers/" + encodeURIComponent(server) + "/creds", body).then(function() {
+        toast("Credential \"" + body.key + "\" set successfully.");
+        f.reset();
+        loadCredentials(server);
+      }).catch(function(err) { toast("Failed to set credential: " + err.message, "err"); });
+    });
+
+    // ================================================================
+    // HEALTH TAB
+    // ================================================================
+    function loadHealth() {
+      api("GET", "/health").then(function(data) {
+        state.health = data;
+        renderHealth(data);
+        updateHeaderDot(data);
+        var ver = (data.gateway || {}).version || data.version || "";
+        if (ver) $("#app-version").textContent = ver + " Admin";
+      }).catch(function(err) {
+        toast("Failed to load health: " + err.message, "err");
+        updateHeaderDot(null);
+      });
+    }
+
+    function renderHealth(h) {
+      var dc = dotClass(h.status);
+      $("#health-big-dot").className = "dot dot-lg " + dc;
+
+      var gw = h.gateway || {};
+      $("#health-title").textContent = (h.status === "healthy") ? "All Systems Operational" : "System Degraded";
+      $("#health-msg").textContent = "Gateway: " + (gw.ok ? "Connected" : (gw.message || "Disconnected"));
+      $("#health-last-check").textContent = "Last check: " + new Date().toLocaleTimeString();
+
+      var grid = $("#health-grid");
+      clearEl(grid);
+      var servers = h.servers || [];
+      if (servers.length === 0) {
+        grid.appendChild(el("div", { cls: "empty-state", text: "No servers to monitor." }));
+        return;
+      }
+      servers.forEach(function(s) {
+        var children = [
+          el("div", { cls: "card-head", children: [
+            el("span", { cls: "dot " + dotClass(s.status) }),
+            el("strong", { text: s.name }),
+          ]}),
+          el("div", { cls: "meta", text: "Status: " + (s.status || "unknown") }),
+        ];
+        if (s.last_error) children.push(el("div", { cls: "err", text: s.last_error }));
+        grid.appendChild(el("div", { cls: "health-card", children: children }));
+      });
+    }
+
+    function updateHeaderDot(health) {
+      var dot = $("#header-dot");
+      var text = $("#header-status-text");
+      if (!health) {
+        dot.className = "dot dot-red";
+        text.textContent = "Unable to reach API";
+        return;
+      }
+      dot.className = "dot " + dotClass(health.status);
+      var count = (health.servers || []).length;
+      text.textContent = (health.status === "healthy")
+        ? count + " server" + (count !== 1 ? "s" : "") + " healthy"
+        : "System degraded";
+    }
+
+    // Reconcile
+    $("#btn-reconcile").addEventListener("click", function() {
+      var btn = this;
+      btn.disabled = true;
+      clearEl(btn);
+      btn.appendChild(el("span", { cls: "spinner" }));
+      btn.appendChild(txt(" Reconciling..."));
+      api("POST", "/reconcile").then(function(data) {
+        toast("Reconciliation complete: " + (data.reconciled || 0) + " server(s) processed.");
+        loadHealth();
+      }).catch(function(err) {
+        toast("Reconciliation failed: " + err.message, "err");
+      }).finally(function() {
+        btn.disabled = false;
+        btn.textContent = "Reconcile Now";
+      });
+    });
+
+    // ================================================================
+    // API KEYS TAB
+    // ================================================================
+    function loadApiKeys() {
+      var listEl = $("#apikeys-list");
+      var emptyEl = $("#apikeys-empty");
+      api("GET", "/api-keys").then(function(data) {
+        var keys = data.api_keys || [];
+        clearEl(listEl);
+        if (keys.length === 0) {
+          emptyEl.textContent = "No API keys configured. Create one to connect MCP clients.";
+          emptyEl.style.display = "block";
+          return;
+        }
+        emptyEl.style.display = "none";
+        keys.forEach(function(k) {
+          var name = k.name || k.Name || "unknown";
+          listEl.appendChild(el("div", {
+            cls: "apikey-card",
+            children: [
+              el("strong", { text: name }),
+              el("span", { cls: "meta", text: "Bearer token for MCP client access" }),
+              el("button", {
+                cls: "btn btn-danger btn-sm",
+                text: "Revoke",
+                onclick: function() { openRevokeDialog(name); },
+              }),
+            ],
+          }));
+        });
+      }).catch(function(err) {
+        emptyEl.textContent = "Failed to load API keys: " + err.message;
+        emptyEl.style.display = "block";
+      });
+    }
+
+    // Create API Key dialog
+    var dlgApiKey = $("#dlg-create-apikey");
+    $("#btn-create-api-key").addEventListener("click", function() {
+      var form = $("#create-apikey-form");
+      form.reset();
+      $("#apikey-result").style.display = "none";
+      $("#btn-submit-apikey").style.display = "";
+      form.querySelector("[name=name]").disabled = false;
+      $("#btn-close-apikey-dlg").textContent = "Cancel";
+      dlgApiKey.showModal();
+    });
+
+    $("#btn-close-apikey-dlg").addEventListener("click", function() {
+      dlgApiKey.close();
+      if ($("#apikey-result").style.display !== "none") loadApiKeys();
+    });
+
+    $("#create-apikey-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      var nameInput = e.target.querySelector("[name=name]");
+      var name = nameInput.value.trim();
+      if (!name) return;
+      var submitBtn = $("#btn-submit-apikey");
+      submitBtn.disabled = true;
+      api("POST", "/api-keys", { name: name }).then(function(data) {
+        toast("API key created: " + name);
+        if (data.token || data.output) {
+          $("#apikey-token-value").textContent = data.token || data.output;
+          $("#apikey-result").style.display = "block";
+          submitBtn.style.display = "none";
+          nameInput.disabled = true;
+          $("#btn-close-apikey-dlg").textContent = "Done";
+        } else {
+          dlgApiKey.close();
+          loadApiKeys();
+        }
+      }).catch(function(err) {
+        toast("Failed: " + err.message, "err");
+      }).finally(function() { submitBtn.disabled = false; });
+    });
+
+    // Copy token
+    $("#btn-copy-token").addEventListener("click", function() {
+      var token = $("#apikey-token-value").textContent;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(token).then(function() {
+          toast("Token copied to clipboard.");
+        }).catch(function() {
+          toast("Clipboard access denied. Please copy manually.", "err");
+        });
+      } else {
+        toast("Clipboard not available. Please copy manually.", "err");
+      }
+    });
+
+    // ================================================================
+    // AUDIT LOG TAB
+    // ================================================================
+    function loadAudit(reset) {
+      if (reset) { state.auditOffset = 0; state.auditEntries = []; }
+      api("GET", "/audit?limit=" + AUDIT_PAGE_SIZE + "&offset=" + state.auditOffset).then(function(data) {
+        var entries = data.entries || [];
+        state.auditEntries = reset ? entries : state.auditEntries.concat(entries);
+        renderAudit();
+        $("#btn-load-more-audit").style.display = (entries.length >= AUDIT_PAGE_SIZE) ? "inline-block" : "none";
+      }).catch(function(err) { toast("Failed to load audit log: " + err.message, "err"); });
+    }
+
+    function formatDetail(detail) {
+      if (!detail) return "--";
+      try {
+        var o = JSON.parse(detail);
+        return Object.keys(o).map(function(k) { return k + "=" + o[k]; }).join(", ");
+      } catch (_) { return detail; }
+    }
+
+    function renderAudit() {
+      var tbody = $("#audit-tbody");
+      clearEl(tbody);
+      if (state.auditEntries.length === 0) {
+        var tr = document.createElement("tr");
+        tr.appendChild(el("td", { cls: "empty-state", text: "No audit log entries.", attrs: { colspan: "5" } }));
+        tbody.appendChild(tr);
+        return;
+      }
+      state.auditEntries.forEach(function(entry) {
+        var tr = document.createElement("tr");
+        tr.appendChild(el("td", { cls: "ts", text: fmtTime(entry.ts) }));
+        tr.appendChild(el("td", { text: entry.user || "--" }));
+        tr.appendChild(el("td", { text: entry.action || "--" }));
+        tr.appendChild(el("td", { cls: "mono", text: entry.target || "--" }));
+        tr.appendChild(el("td", { text: formatDetail(entry.detail) }));
+        tbody.appendChild(tr);
+      });
+    }
+
+    $("#btn-load-more-audit").addEventListener("click", function() {
+      state.auditOffset += AUDIT_PAGE_SIZE;
+      loadAudit(false);
+    });
+
+    // ================================================================
+    // POLLING & TIMERS
+    // ================================================================
+    var installPollTimer = null;
+    function startInstallPoll() {
+      if (installPollTimer) return;
+      installPollTimer = setInterval(function() {
+        var any = state.servers.some(function(s) { return s.status === "installing" || s.status === "pending"; });
+        if (!any) { clearInterval(installPollTimer); installPollTimer = null; return; }
+        loadServers();
+      }, INSTALL_POLL);
+    }
+
+    var healthTimer = null, auditTimer = null;
+    function startTimers() {
+      stopTimers();
+      healthTimer = setInterval(function() { loadHealth(); }, HEALTH_INTERVAL);
+      auditTimer = setInterval(function() {
+        if ($("#tab-audit").classList.contains("active")) loadAudit(true);
+      }, AUDIT_INTERVAL);
+    }
+    function stopTimers() {
+      if (healthTimer) { clearInterval(healthTimer); healthTimer = null; }
+      if (auditTimer)  { clearInterval(auditTimer);  auditTimer  = null; }
+    }
+
+    // ================================================================
+    // INIT
+    // ================================================================
+    loadServers();
+    loadHealth();
+    startTimers();
+
+  })();
+  </script>
+</body>
+</html>
