@@ -23,10 +23,12 @@ import os
 from pathlib import Path
 from typing import Any
 
+from .runtime import runtime_data_root
+
 logger = logging.getLogger(__name__)
 
 # Default output path for the generated config
-DEFAULT_CONFIG_PATH = Path("/app/data/.mcpjungle-managed/lazy-mcp-servers.json")
+DEFAULT_CONFIG_PATH = runtime_data_root() / ".mcpjungle-managed" / "lazy-mcp-servers.json"
 
 
 def generate_lazy_mcp_config(

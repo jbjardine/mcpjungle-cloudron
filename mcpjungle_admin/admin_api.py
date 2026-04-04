@@ -47,6 +47,7 @@ from .mcpjungle_client import MCPJungleClient, MCPJungleClientError
 from .models import strip_sensitive_server_config
 from .reconcile import Reconciler
 from .registry import ManagedRegistry
+from .runtime import canonical_runtime_env, load_gateway_settings, runtime_data_root
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ DEFAULT_PORT = 8082
 AUDIT_LOG_PATH = Path(
     os.environ.get(
         "MCPJUNGLE_AUDIT_LOG",
-        "/app/data/.mcpjungle-managed/audit.jsonl",
+        str(runtime_data_root() / ".mcpjungle-managed" / "audit.jsonl"),
     )
 )
 MAX_REQUEST_BODY = 2 * 1024 * 1024  # 2 MiB safety limit
@@ -878,22 +879,10 @@ class AdminAPIHandler(BaseHTTPRequestHandler):
 
 
 def _read_gateway_conf() -> tuple[str, str]:
-    """Read gateway URL and access token from /app/data/.mcpjungle.conf."""
-    conf_path = Path("/app/data/.mcpjungle.conf")
-    gw_url = "http://127.0.0.1:8081"
-    access_token = ""
-    if conf_path.exists():
-        for line in conf_path.read_text().splitlines():
-            stripped = line.strip()
-            key_val = stripped.split(None, 1)  # "key: value" → split on whitespace
-            if len(key_val) == 2:
-                key = key_val[0].rstrip(":")
-                val = key_val[1]
-                if key == "registry_url":
-                    gw_url = val
-                elif key == "access_token":
-                    access_token = val
-    return gw_url, access_token
+    """Read gateway URL and access token from the canonical runtime config."""
+    settings = load_gateway_settings()
+    gw_url = settings["registry_url"] or "http://127.0.0.1:8081"
+    return gw_url, settings["access_token"]
 
 
 def _fetch_tool_counts() -> dict[str, int]:
@@ -983,7 +972,7 @@ def _safe_reconcile_result(result: dict[str, Any]) -> dict[str, Any]:
 # Nginx bridge config generation
 # ---------------------------------------------------------------------------
 
-_NGINX_BRIDGES_PATH = Path("/app/data/.mcpjungle-managed/nginx-bridges.conf")
+_NGINX_BRIDGES_PATH = runtime_data_root() / ".mcpjungle-managed" / "nginx-bridges.conf"
 
 _BRIDGE_LOCATION_TEMPLATE = """\
 # Auto-generated bridge for {name} (port {port})
@@ -1023,7 +1012,10 @@ def _regenerate_nginx_bridges() -> None:
         import subprocess
         subprocess.run(
             ["nginx", "-s", "reload", "-c", "/app/code/nginx.conf"],
-            check=False, capture_output=True, timeout=10,
+            check=False,
+            capture_output=True,
+            timeout=10,
+            env=canonical_runtime_env(),
         )
         logger.info("Regenerated nginx bridges (%d entries)", len(blocks))
     except Exception as exc:
@@ -1043,7 +1035,7 @@ def _load_admin_token() -> str:
     global _ADMIN_TOKEN  # noqa: PLW0603
     _ADMIN_TOKEN = os.environ.get("MCPJUNGLE_ADMIN_TOKEN", "")
     if not _ADMIN_TOKEN:
-        token_path = Path("/app/data/.mcpjungle-managed/admin-token")
+        token_path = runtime_data_root() / ".mcpjungle-managed" / "admin-token"
         try:
             _ADMIN_TOKEN = token_path.read_text(encoding="utf-8").strip()
         except OSError:

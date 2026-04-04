@@ -23,6 +23,12 @@ from .mcpjungle_client import MCPJungleClient
 from .models import is_path_within, load_secret_material, permission_mode, utcnow_iso
 from .reconcile import Reconciler
 from .registry import ManagedRegistry
+from .runtime import (
+    load_gateway_settings,
+    runtime_conf_path,
+    runtime_data_root,
+    runtime_summary,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -176,20 +182,14 @@ def _resolve_registry_url() -> str:
     from_env = os.environ.get("MCPJUNGLE_REGISTRY_URL")
     if from_env:
         return from_env
-    # Read the same config file the Go CLI uses
-    conf_path = Path(os.environ.get("HOME", "/app/data")) / ".mcpjungle.conf"
-    if conf_path.exists():
-        try:
-            for line in conf_path.read_text().splitlines():
-                if line.strip().startswith("registry_url:"):
-                    return line.split(":", 1)[1].strip()
-        except Exception:
-            pass
+    settings = load_gateway_settings()
+    if settings["registry_url"]:
+        return settings["registry_url"]
     return "http://127.0.0.1:8080"
 
 
 def build_runtime() -> tuple[ManagedRegistry, MCPJungleClient, HealthChecker, Reconciler]:
-    data_root = Path(os.environ.get("MCPJUNGLE_DATA_ROOT", "/app/data"))
+    data_root = runtime_data_root()
     registry_path = Path(
         os.environ.get(
             "MCPJUNGLE_MANAGED_REGISTRY",
@@ -402,17 +402,28 @@ def cmd_list_managed(args: argparse.Namespace) -> int:
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     registry, client, health_checker, _ = build_runtime()
-    data_root = Path(os.environ.get("MCPJUNGLE_DATA_ROOT", "/app/data"))
+    data_root = runtime_data_root()
     auth_config = Path(
-        os.environ.get("MCPJUNGLE_AUTH_CONFIG", str(data_root / ".mcpjungle.conf"))
+        os.environ.get("MCPJUNGLE_AUTH_CONFIG", str(runtime_conf_path()))
     )
     gateway_ok, gateway_message = health_checker.check_gateway()
+    runtime_info = runtime_summary(include_node=True)
+    auth_config_source = (
+        "MCPJUNGLE_AUTH_CONFIG"
+        if os.environ.get("MCPJUNGLE_AUTH_CONFIG")
+        else "MCPJUNGLE_DATA_ROOT/.mcpjungle.conf"
+    )
 
     report = {
+        "auth_config_path": str(auth_config),
+        "auth_config_source": auth_config_source,
         "registry_path": str(registry.registry_path),
         "bundles_root": str(registry.bundles_root),
         "work_root": str(registry.work_root),
         "secrets_root": str(registry.secrets_root),
+        "data_root": str(data_root),
+        "registry_url": client.registry_url,
+        "runtime": runtime_info,
         "auth_config_exists": auth_config.exists(),
         "auth_config_mode": permission_mode(auth_config),
         "registry_mode": permission_mode(registry.registry_path),

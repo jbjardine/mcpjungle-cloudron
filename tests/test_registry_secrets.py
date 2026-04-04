@@ -58,6 +58,52 @@ class RegistrySecretsTest(unittest.TestCase):
         self.assertEqual(resolved["env"]["API_KEY"], "super-secret")
         self.assertEqual(resolved["env"]["PUBLIC_URL"], "https://example.com")
 
+    def test_stdio_runtime_env_injects_canonical_home_and_xdg(self) -> None:
+        entry = {
+            "name": "demo",
+            "description": "Demo",
+            "transport": "stdio",
+            "managed": True,
+            "managed_type": "custom_command",
+            "runtime_spec": {
+                "command": "node",
+                "args": ["server.js"],
+            },
+            "install_spec": {"updateStrategy": "manual"},
+            "healthcheck_spec": {"mode": "disabled"},
+        }
+
+        resolved = server_config_from_entry(entry)
+        self.assertEqual(resolved["env"]["HOME"], "/app/data")
+        self.assertEqual(resolved["env"]["APP_HOME"], "/app/data")
+        self.assertEqual(resolved["env"]["MCPJUNGLE_DATA_ROOT"], "/app/data")
+        self.assertEqual(resolved["env"]["XDG_CONFIG_HOME"], "/app/data/.config")
+        self.assertEqual(resolved["env"]["XDG_CACHE_HOME"], "/app/data/.cache")
+        self.assertEqual(resolved["env"]["XDG_DATA_HOME"], "/app/data/.local/share")
+
+    def test_stdio_runtime_env_keeps_explicit_overrides(self) -> None:
+        entry = {
+            "name": "demo",
+            "description": "Demo",
+            "transport": "stdio",
+            "managed": True,
+            "managed_type": "custom_command",
+            "runtime_spec": {
+                "command": "node",
+                "args": ["server.js"],
+                "env": {
+                    "HOME": "/custom-home",
+                    "PATH": "/custom-bin",
+                },
+            },
+            "install_spec": {"updateStrategy": "manual"},
+            "healthcheck_spec": {"mode": "disabled"},
+        }
+
+        resolved = server_config_from_entry(entry)
+        self.assertEqual(resolved["env"]["HOME"], "/custom-home")
+        self.assertEqual(resolved["env"]["PATH"], "/custom-bin")
+
     def test_legacy_inline_secret_is_migrated_on_load(self) -> None:
         registry = self.make_registry()
         registry.ensure_layout()

@@ -3,6 +3,24 @@
 All notable changes to this project are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [2.3.6] - 2026-04-04
+
+### Changed
+
+- Standardize the Cloudron runtime contract around `/app/data` for `HOME`, `PATH`, `TMPDIR`, locale, and XDG directories.
+- Rebuild the embedded `mcpjungle` gateway from pinned upstream source instead of copying the prebuilt image directly.
+
+### Fixed
+
+- Make `mcpjungle-admin` resolve auth/config from the app data root instead of depending on the caller's shell `HOME`.
+- Pass a canonical writable environment to managed `stdio` subprocesses and improve startup diagnostics with the effective runtime summary.
+- Normalize ownership of managed registry and secret files after writes so Cloudron admin operations do not regress on permissions.
+- Treat `register` timeouts as successful reconcile outcomes when the target server is already present, unchanged, and healthy.
+- Patch stdio subprocess shutdown so `tools/invoke` does not hang indefinitely when a managed server keeps running after stdin is closed.
+- Clarify stdio shutdown logs by distinguishing a real stderr EOF from the client intentionally closing the stderr pipe during cleanup.
+
 ## [2.3.0] - 2026-03-30
 
 ### Added
@@ -212,6 +230,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Sem
 - Rollback-aware reconcile and update flow.
 - Unit tests for registry management, type detection, and reconcile rollback.
 
+[Unreleased]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.6...HEAD
+[2.3.6]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.5...v2.3.6
 [2.3.0]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.1.0...v2.2.0

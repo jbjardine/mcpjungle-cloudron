@@ -32,32 +32,50 @@ export OTEL_ENABLED="${OTEL_ENABLED:-false}"
 # Timeout for MCP server init (60s to give uvx time to download packages)
 export MCP_SERVER_INIT_REQ_TIMEOUT_SEC="${MCP_SERVER_INIT_REQ_TIMEOUT_SEC:-300}"
 
-# Prefer distro Node.js over the legacy Cloudron base Node in PATH.
-export PATH="/usr/bin:/root/.local/bin:/usr/local/bin:${PATH}"
-
-# HOME for uvx cache, kept across restarts
+# Canonical runtime contract for shells, supervisor, and all child processes.
+export MCPJUNGLE_DATA_ROOT="${APP_HOME}"
 export HOME="${APP_HOME}"
+export PATH="/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:/bin:/root/.local/bin"
+export LANG="C.UTF-8"
+export LC_ALL="C.UTF-8"
+export TMPDIR="${TMPDIR:-/tmp}"
+export XDG_CONFIG_HOME="${APP_HOME}/.config"
+export XDG_CACHE_HOME="${APP_HOME}/.cache"
+export XDG_DATA_HOME="${APP_HOME}/.local/share"
 
 # MCPJungle listens on 8081; nginx fronts it on 8080
 export PORT=8081
 
-mkdir -p /app/data/.mcpjungle-managed/work /app/data/.mcpjungle-managed/secrets /app/data/mcp-bundles 2>/dev/null || true
-chown -R cloudron:cloudron /app/data 2>/dev/null || true
-chmod 700 /app/data/.mcpjungle-managed /app/data/.mcpjungle-managed/work /app/data/.mcpjungle-managed/secrets /app/data/mcp-bundles 2>/dev/null || true
-chmod 600 /app/data/.mcpjungle-managed/registry.json /app/data/.mcpjungle-managed/secrets/*.json 2>/dev/null || true
+MANAGED_ROOT="${APP_HOME}/.mcpjungle-managed"
+BUNDLES_ROOT="${APP_HOME}/mcp-bundles"
+AUTH_CONF="${APP_HOME}/.mcpjungle.conf"
+
+mkdir -p \
+    "${MANAGED_ROOT}/work" \
+    "${MANAGED_ROOT}/secrets" \
+    "${BUNDLES_ROOT}" \
+    "${XDG_CONFIG_HOME}" \
+    "${XDG_CACHE_HOME}" \
+    "${XDG_DATA_HOME}" \
+    "${APP_HOME}/.npm" \
+    2>/dev/null || true
+chown -R cloudron:cloudron "${APP_HOME}" 2>/dev/null || true
+chmod 700 "${MANAGED_ROOT}" "${MANAGED_ROOT}/work" "${MANAGED_ROOT}/secrets" "${BUNDLES_ROOT}" 2>/dev/null || true
+chmod 600 "${MANAGED_ROOT}/registry.json" "${MANAGED_ROOT}/secrets/"*.json 2>/dev/null || true
+
 # Auto-create .mcpjungle.conf if missing (first boot)
-if [ ! -f /app/data/.mcpjungle.conf ]; then
+if [ ! -f "${AUTH_CONF}" ]; then
     echo "==> Creating .mcpjungle.conf (first boot)"
     ACCESS_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-    cat > /app/data/.mcpjungle.conf <<CONF
+    cat > "${AUTH_CONF}" <<CONF
 registry_url: http://127.0.0.1:8081
 access_token: ${ACCESS_TOKEN}
 CONF
 fi
-chmod 600 /app/data/.mcpjungle.conf 2>/dev/null || true
+chmod 600 "${AUTH_CONF}" 2>/dev/null || true
 
 # Ensure nginx bridges include file exists (empty is fine - populated by admin API)
-touch /app/data/.mcpjungle-managed/nginx-bridges.conf
+touch "${MANAGED_ROOT}/nginx-bridges.conf"
 
 # Remove default nginx site to avoid port conflicts
 rm -f /etc/nginx/sites-enabled/default
@@ -68,16 +86,17 @@ mkdir -p /run
 echo "==> DATABASE_URL configured from Cloudron PostgreSQL addon"
 
 # Fix permissions before handing off to supervisor
-chown -R cloudron:cloudron /app/data/.mcpjungle-managed 2>/dev/null || true
-chown -R cloudron:cloudron /app/data/.local 2>/dev/null || true
-chown -R cloudron:cloudron /app/data/.cache 2>/dev/null || true
-chown -R cloudron:cloudron /app/data/.npm 2>/dev/null || true
-chown cloudron:cloudron /app/data/.mcpjungle.conf 2>/dev/null || true
+chown -R cloudron:cloudron "${MANAGED_ROOT}" 2>/dev/null || true
+chown -R cloudron:cloudron "${APP_HOME}/.local" 2>/dev/null || true
+chown -R cloudron:cloudron "${APP_HOME}/.cache" 2>/dev/null || true
+chown -R cloudron:cloudron "${APP_HOME}/.config" 2>/dev/null || true
+chown -R cloudron:cloudron "${APP_HOME}/.npm" 2>/dev/null || true
+chown cloudron:cloudron "${AUTH_CONF}" 2>/dev/null || true
 
 # Generate admin session token (Python admin API reads it at startup)
 ADMIN_TOKEN=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-echo "$ADMIN_TOKEN" > /app/data/.mcpjungle-managed/admin-token
-chmod 600 /app/data/.mcpjungle-managed/admin-token
+echo "$ADMIN_TOKEN" > "${MANAGED_ROOT}/admin-token"
+chmod 600 "${MANAGED_ROOT}/admin-token"
 export MCPJUNGLE_ADMIN_TOKEN="$ADMIN_TOKEN"
 echo "==> Admin session token generated"
 

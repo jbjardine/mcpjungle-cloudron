@@ -47,6 +47,71 @@ class Reconciler:
                 self._locks[name] = threading.Lock()
             return self._locks[name]
 
+    def _healthy_result(
+        self,
+        entry: dict[str, Any],
+        desired_config: dict[str, Any],
+        desired_hash: str,
+        message: str,
+        *,
+        changed: bool,
+    ) -> dict[str, Any]:
+        entry["last_applied_hash"] = desired_hash
+        entry["last_known_good"] = strip_sensitive_server_config(desired_config)
+        entry["status"] = "healthy"
+        entry["last_error"] = ""
+        entry["consecutive_failures"] = 0
+        return {
+            "name": entry["name"],
+            "status": "healthy",
+            "message": message,
+            "entry": entry,
+            "changed": changed,
+        }
+
+    def _recover_register_success(
+        self,
+        entry: dict[str, Any],
+        desired_config: dict[str, Any],
+        desired_hash: str,
+        exc: Exception,
+    ) -> tuple[bool, str]:
+        """Treat timed/ambiguous register attempts as success if state is already good.
+
+        Some upstream `mcpjungle register` invocations can overrun the local CLI timeout
+        even though the server is already present in the gateway and responds to health
+        checks. When that happens, prefer the effective runtime state over the local CLI
+        exit path so managed status does not stay stuck in a false error state.
+        """
+        try:
+            current_config = self.client.get_server_configs().get(entry["name"])
+            if current_config is None:
+                return False, ""
+
+            current_hash = runtime_hash_from_config(current_config)
+            if current_hash != desired_hash:
+                return False, ""
+
+            ok, message = self.health_checker.check_entry(entry)
+            if not ok:
+                return False, ""
+
+            logger.warning(
+                "register for %s reported %s but server is present and healthy; "
+                "treating reconcile as successful",
+                entry["name"],
+                exc,
+            )
+            return True, message
+        except Exception as verify_exc:
+            logger.warning(
+                "post-register verification failed for %s after %s: %s",
+                entry["name"],
+                exc,
+                verify_exc,
+            )
+            return False, ""
+
     # ------------------------------------------------------------------
     # Async install: submit to worker pool, return immediately
     # ------------------------------------------------------------------
@@ -189,19 +254,29 @@ class Reconciler:
             if not ok:
                 raise RuntimeError(message)
 
-            updated_entry["last_applied_hash"] = desired_hash
-            updated_entry["last_known_good"] = strip_sensitive_server_config(desired_config)
-            updated_entry["status"] = "healthy"
-            updated_entry["last_error"] = ""
-            updated_entry["consecutive_failures"] = 0
-            return {
-                "name": updated_entry["name"],
-                "status": "healthy",
-                "message": message,
-                "entry": updated_entry,
-                "changed": True,
-            }
+            return self._healthy_result(
+                updated_entry,
+                desired_config,
+                desired_hash,
+                message,
+                changed=True,
+            )
         except (subprocess.TimeoutExpired, MCPJungleClientError, RuntimeError) as exc:
+            recovered, message = self._recover_register_success(
+                updated_entry,
+                desired_config,
+                desired_hash,
+                exc,
+            )
+            if recovered:
+                return self._healthy_result(
+                    updated_entry,
+                    desired_config,
+                    desired_hash,
+                    message,
+                    changed=True,
+                )
+
             error_msg = str(exc)
             updated_entry["status"] = "error"
             updated_entry["last_error"] = error_msg
@@ -303,19 +378,29 @@ class Reconciler:
             if not ok:
                 raise RuntimeError(message)
 
-            updated_entry["last_applied_hash"] = desired_hash
-            updated_entry["last_known_good"] = strip_sensitive_server_config(desired_config)
-            updated_entry["status"] = "healthy"
-            updated_entry["last_error"] = ""
-            updated_entry["consecutive_failures"] = 0
-            return {
-                "name": updated_entry["name"],
-                "status": "healthy",
-                "message": message,
-                "entry": updated_entry,
-                "changed": True,
-            }
+            return self._healthy_result(
+                updated_entry,
+                desired_config,
+                desired_hash,
+                message,
+                changed=True,
+            )
         except Exception as exc:
+            recovered, message = self._recover_register_success(
+                updated_entry,
+                desired_config,
+                desired_hash,
+                exc,
+            )
+            if recovered:
+                return self._healthy_result(
+                    updated_entry,
+                    desired_config,
+                    desired_hash,
+                    message,
+                    changed=True,
+                )
+
             rollback_message = self._rollback(updated_entry, rollback_config, desired_config)
             error_msg = str(exc)
 

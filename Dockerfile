@@ -1,9 +1,34 @@
-FROM ghcr.io/mcpjungle/mcpjungle:0.3.6-stdio AS mcpjungle
+FROM golang:1.26.1-bookworm AS mcpjungle-builder
+
+ARG MCPJUNGLE_REF=fe0e92f9d37d523687f4df48833d25dfc8a66df8
+ARG MCP_GO_REF=a1dd4efa3cc999c162642c4bd19016219d837072
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY patches /tmp/patches
+
+RUN git clone https://github.com/mcpjungle/mcpjungle.git /tmp/mcpjungle \
+    && cd /tmp/mcpjungle \
+    && git checkout "${MCPJUNGLE_REF}"
+
+RUN git clone https://github.com/mark3labs/mcp-go.git /tmp/mcp-go \
+    && cd /tmp/mcp-go \
+    && git checkout "${MCP_GO_REF}" \
+    && git apply /tmp/patches/mcp-go/0001-stdio-close-timeout.patch
+
+RUN cd /tmp/mcpjungle \
+    && git apply /tmp/patches/mcpjungle/0001-stderr-shutdown-log.patch \
+    && go mod edit -replace github.com/mark3labs/mcp-go=/tmp/mcp-go \
+    && go mod tidy \
+    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /tmp/mcpjungle .
 
 FROM cloudron/base:4.2.0@sha256:46da2fffb36353ef714f97ae8e962bd2c212ca091108d768ba473078319a47f4
 
-# Copy MCPJungle binary from the official image
-COPY --from=mcpjungle /mcpjungle /usr/local/bin/mcpjungle
+# Build MCPJungle from pinned upstream source so we can carry minimal stdio patches.
+COPY --from=mcpjungle-builder /tmp/mcpjungle /usr/local/bin/mcpjungle
 
 # Install Python 3, Node.js 20, and uv/uvx for MCP servers
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -54,7 +79,17 @@ COPY start.sh /app/code/start.sh
 RUN sed -i 's/\r$//' /app/code/start.sh \
     && chmod +x /app/code/start.sh
 
-ENV PYTHONPATH="/app/code"
+ENV APP_HOME="/app/data" \
+    HOME="/app/data" \
+    MCPJUNGLE_DATA_ROOT="/app/data" \
+    LANG="C.UTF-8" \
+    LC_ALL="C.UTF-8" \
+    TMPDIR="/tmp" \
+    XDG_CONFIG_HOME="/app/data/.config" \
+    XDG_CACHE_HOME="/app/data/.cache" \
+    XDG_DATA_HOME="/app/data/.local/share" \
+    PATH="/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:/bin:/root/.local/bin" \
+    PYTHONPATH="/app/code"
 
 EXPOSE 8080
 
