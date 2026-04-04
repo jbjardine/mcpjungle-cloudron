@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .runtime import canonical_runtime_env
+
 
 SCHEMA_VERSION = 2
 AUTH_TYPES = {"api_key", "bearer", "oauth_reserved"}
@@ -21,7 +23,9 @@ AUTH_TYPES = {"api_key", "bearer", "oauth_reserved"}
 # This dict is merged UNDER the server-specific env (server wins on conflict).
 
 _BASE_STDIO_ENV_KEYS = (
+    "APP_HOME",
     "HOME",          # writable dir for config/cache (n8n-mcp, etc.)
+    "MCPJUNGLE_DATA_ROOT",
     "PATH",          # find system binaries (node, python, git …)
     "LANG",          # avoid encoding errors in subprocesses
     "LC_ALL",
@@ -36,18 +40,15 @@ _BASE_STDIO_ENV_KEYS = (
 def _base_stdio_env() -> dict[str, str]:
     """Return a base environment for stdio MCP subprocesses.
 
-    Picks essential vars from the current process environment.
-    Guarantees HOME and PATH are always set even if missing upstream.
+    Uses the canonical container runtime so stdio subprocesses always see
+    the same writable HOME, PATH ordering, locale, and XDG directories.
     """
-    base: dict[str, str] = {}
-    for key in _BASE_STDIO_ENV_KEYS:
-        val = os.environ.get(key)
-        if val:
-            base[key] = val
-    # Hard defaults - these MUST exist for subprocesses to work
-    base.setdefault("HOME", "/app/data")
-    base.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
-    return base
+    runtime_env = canonical_runtime_env()
+    return {
+        key: runtime_env[key]
+        for key in _BASE_STDIO_ENV_KEYS
+        if runtime_env.get(key)
+    }
 MANAGED_TYPES = {
     "npm_package",
     "uvx_package",

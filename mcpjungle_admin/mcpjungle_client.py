@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .models import sanitize_server_config
+from .runtime import canonical_runtime_env, runtime_data_root
 
 
 class MCPJungleClientError(RuntimeError):
@@ -19,12 +20,15 @@ class MCPJungleClient:
         self,
         cli_path: str = "/usr/local/bin/mcpjungle",
         registry_url: str = "http://127.0.0.1:8080",
-        work_root: str | Path = "/app/data/.mcpjungle-managed/work",
+        work_root: str | Path | None = None,
         timeout: int = 300,
     ) -> None:
         self.cli_path = cli_path
         self.registry_url = registry_url.rstrip("/")
-        self.work_root = Path(work_root)
+        self.work_root = Path(
+            work_root
+            or runtime_data_root() / ".mcpjungle-managed" / "work"
+        )
         self.timeout = timeout
 
     def _run(
@@ -36,6 +40,7 @@ class MCPJungleClient:
         timeout: int | None = None,
     ) -> subprocess.CompletedProcess[str]:
         command = [self.cli_path, *args, "--registry", self.registry_url]
+        runtime_env = canonical_runtime_env()
         result = subprocess.run(
             command,
             cwd=str(cwd) if cwd else None,
@@ -43,6 +48,7 @@ class MCPJungleClient:
             capture_output=True,
             text=True,
             timeout=timeout or self.timeout,
+            env=runtime_env,
         )
         if check and result.returncode != 0:
             raise MCPJungleClientError(

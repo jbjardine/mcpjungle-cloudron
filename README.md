@@ -213,6 +213,12 @@ mcpjungle-admin remove my-server
 mcpjungle-admin doctor
 ```
 
+### Troubleshooting
+
+If the gateway logs `server process has exited gracefully` for a `stdio` server, do not assume that line alone means the server crashed. Managed `stdio` processes can be launched on demand and exit cleanly after a successful health check or tool listing. Confirm the current state with `mcpjungle-admin doctor` and the admin Health tab before treating that log line as a failure.
+
+This image rebuilds the upstream `mcpjungle` launcher from pinned source with two minimal stdio lifecycle patches. The first bounds stdio child shutdown so `tools/invoke` does not hang forever waiting on servers that ignore stdin close. The second makes shutdown logs distinguish a real child EOF from the client intentionally closing the stderr pipe.
+
 ### Force reconcile
 
 ```bash

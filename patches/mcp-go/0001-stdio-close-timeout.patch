@@ -1,0 +1,69 @@
+diff --git a/client/transport/stdio.go b/client/transport/stdio.go
+index e4f2685..32bd788 100644
+--- a/client/transport/stdio.go
++++ b/client/transport/stdio.go
+@@ -11,6 +11,8 @@ import (
+ 	"os/exec"
+ 	"strings"
+ 	"sync"
++	"syscall"
++	"time"
+ 
+ 	"github.com/mark3labs/mcp-go/mcp"
+ 	"github.com/mark3labs/mcp-go/util"
+@@ -190,6 +192,11 @@ func (c *Stdio) spawnCommand(ctx context.Context) error {
+ 	return nil
+ }
+ 
++const (
++	gracefulShutdownTimeout = 2 * time.Second
++	forceKillTimeout       = 3 * time.Second
++)
++
+ // Close shuts down the stdio client, closing the stdin pipe and waiting for the subprocess to exit.
+ // Returns an error if there are issues closing stdin or waiting for the subprocess to terminate.
+ func (c *Stdio) Close() error {
+@@ -212,11 +219,40 @@ func (c *Stdio) Close() error {
+ 		}
+ 	}
+ 
+-	if c.cmd != nil {
+-		return c.cmd.Wait()
++	if c.cmd == nil {
++		return nil
+ 	}
+ 
+-	return nil
++	waitDone := make(chan error, 1)
++	go func() {
++		waitDone <- c.cmd.Wait()
++	}()
++
++	select {
++	case err := <-waitDone:
++		return err
++	case <-time.After(gracefulShutdownTimeout):
++	}
++
++	if c.cmd.Process != nil {
++		if err := c.cmd.Process.Signal(syscall.SIGTERM); err != nil && !errors.Is(err, os.ErrProcessDone) {
++			return fmt.Errorf("failed to terminate subprocess: %w", err)
++		}
++	}
++
++	select {
++	case err := <-waitDone:
++		return err
++	case <-time.After(forceKillTimeout):
++	}
++
++	if c.cmd.Process != nil {
++		if err := c.cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
++			return fmt.Errorf("failed to kill subprocess: %w", err)
++		}
++	}
++
++	return <-waitDone
+ }
+ 
+ // GetSessionId returns the session ID of the transport.

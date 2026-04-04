@@ -17,6 +17,7 @@ from .models import (
     strip_sensitive_server_config,
     utcnow_iso,
 )
+from .runtime import runtime_data_root
 
 
 class ManagedRegistry:
@@ -26,7 +27,7 @@ class ManagedRegistry:
         bundles_root: str | Path | None = None,
         work_root: str | Path | None = None,
     ) -> None:
-        data_root = Path("/app/data")
+        data_root = runtime_data_root()
         self.registry_path = Path(
             registry_path or data_root / ".mcpjungle-managed" / "registry.json"
         )
@@ -43,6 +44,11 @@ class ManagedRegistry:
         self.bundles_root.mkdir(parents=True, exist_ok=True)
         self.secrets_root.mkdir(parents=True, exist_ok=True)
         self.legacy_configs_root.mkdir(parents=True, exist_ok=True)
+        self._sync_ownership(self.managed_root)
+        self._sync_ownership(self.work_root)
+        self._sync_ownership(self.bundles_root)
+        self._sync_ownership(self.secrets_root)
+        self._sync_ownership(self.legacy_configs_root)
         os.chmod(self.managed_root, 0o700)
         os.chmod(self.work_root, 0o700)
         os.chmod(self.bundles_root, 0o700)
@@ -97,6 +103,7 @@ class ManagedRegistry:
                 tmp_name = handle.name
 
             Path(tmp_name).replace(self.registry_path)
+            self._sync_ownership(self.registry_path)
             chmod_if_exists(self.registry_path, 0o600)
 
     def migrate_v1_to_v2(self, document: dict[str, Any]) -> dict[str, Any]:
@@ -168,6 +175,7 @@ class ManagedRegistry:
             if target_path.exists():
                 target_path = self.legacy_configs_root / f"{name}-{path.name}"
             path.replace(target_path)
+            self._sync_ownership(target_path)
             chmod_if_exists(target_path, 0o600)
             moved.append({"source": str(path), "target": str(target_path), "name": name})
 
@@ -266,9 +274,9 @@ class ManagedRegistry:
                 if path.exists() and is_path_within(self.secrets_root, path):
                     path.unlink(missing_ok=True)
 
-    @staticmethod
-    def _write_json(path: Path, payload: dict[str, Any], mode: int) -> None:
+    def _write_json(self, path: Path, payload: dict[str, Any], mode: int) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
+        self._sync_ownership(path.parent)
         with tempfile.NamedTemporaryFile(
             "w",
             encoding="utf-8",
@@ -281,4 +289,27 @@ class ManagedRegistry:
             handle.write("\n")
             tmp_name = handle.name
         Path(tmp_name).replace(path)
+        self._sync_ownership(path)
         chmod_if_exists(path, mode)
+
+    def _desired_owner(self) -> tuple[int, int] | None:
+        for candidate in (self.data_root, self.managed_root.parent, self.managed_root):
+            if candidate.exists():
+                stat = candidate.stat()
+                return stat.st_uid, stat.st_gid
+        return None
+
+    def _sync_ownership(self, path: Path) -> None:
+        desired_owner = self._desired_owner()
+        if desired_owner is None or not path.exists():
+            return
+        desired_uid, desired_gid = desired_owner
+        current = path.stat()
+        if (current.st_uid, current.st_gid) == (desired_uid, desired_gid):
+            return
+        try:
+            os.chown(path, desired_uid, desired_gid)
+        except PermissionError:
+            # Non-root callers cannot repair ownership, but root-run maintenance
+            # commands should normalize it so the cloudron service user keeps access.
+            return

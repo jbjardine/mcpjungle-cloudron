@@ -20,6 +20,12 @@ from .models import (
     utcnow_iso,
 )
 from .registry import ManagedRegistry
+from .runtime import (
+    canonical_runtime_env,
+    executable_version,
+    resolve_executable,
+    runtime_summary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +51,12 @@ def diagnose_stdio_startup(entry: dict[str, Any]) -> str:
     if not command:
         return "no command configured"
 
-    diag_env = {**os.environ, **env_vars, "MCP_MODE": "http"}
+    diag_env = canonical_runtime_env(extra=env_vars)
+    diag_env["MCP_MODE"] = "http"
     cmd = [command, *args]
+    command_path = resolve_executable(command, diag_env) or command
+    diag_runtime = runtime_summary(diag_env, include_node=command in {"node", "npm", "npx"})
+    diag_runtime["command_path"] = command_path
 
     try:
         result = subprocess.run(
@@ -57,6 +67,7 @@ def diagnose_stdio_startup(entry: dict[str, Any]) -> str:
             timeout=10,
         )
         parts = []
+        parts.append(f"runtime={json.dumps(diag_runtime, sort_keys=True)}")
         parts.append(f"exit_code={result.returncode}")
         if result.stderr:
             parts.append(f"stderr={result.stderr[:2000]}")
@@ -94,10 +105,8 @@ def pre_install(entry: dict[str, Any]) -> str:
 
 def _install_env() -> dict[str, str]:
     """Build env for subprocess installs - use /app/data as HOME for uvx/npm."""
-    env = {**os.environ}
-    app_data = os.environ.get("APP_HOME", "/app/data")
-    env["HOME"] = app_data
-    env["PATH"] = "/usr/local/bin:/usr/bin:/bin:" + env.get("PATH", "")
+    env = canonical_runtime_env()
+    app_data = env["APP_HOME"]
     env["npm_config_cache"] = f"{app_data}/.npm"
     return env
 
@@ -202,11 +211,12 @@ def _pre_install_custom(entry: dict[str, Any]) -> str:
     command = entry.get("runtime_spec", {}).get("command", "")
     if not command:
         return "custom_command: no command to check"
-    found = shutil.which(command)
+    install_env = _install_env()
+    found = resolve_executable(command, install_env)
     if not found:
         args = entry.get("runtime_spec", {}).get("args", [])
         if args:
-            found = shutil.which(args[0]) if os.path.sep in args[0] else None
+            found = resolve_executable(args[0], install_env) if os.path.sep in args[0] else None
         if not found and not Path(command).exists():
             raise RuntimeError(f"command not found: {command}")
     return f"command found: {found or command}"
@@ -248,6 +258,7 @@ def resolve_latest_npm_version(package_name: str) -> str:
         capture_output=True,
         text=True,
         timeout=30,
+        env=_install_env(),
     )
     if result.returncode != 0:
         raise RuntimeError(
@@ -563,7 +574,7 @@ def run_update_hook(entry: dict[str, Any], target_version: str | None = None) ->
         raise ValueError(f"No update hook configured for {entry['name']}")
 
     env = {
-        **os.environ,
+        **canonical_runtime_env(),
         "MCP_NAME": entry["name"],
         "MCP_MANAGED_TYPE": entry["managed_type"],
         "MCP_TARGET_VERSION": target_version or "",

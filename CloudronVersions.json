@@ -1,6 +1,41 @@
 {
     "stable": true,
     "versions": {
+        "2.3.6": {
+            "creationDate": "Sat, 04 Apr 2026 00:00:00 GMT",
+            "manifest": {
+                "id": "io.mcpjungle.cloudronapp",
+                "title": "MCPJungle",
+                "author": "JBJardine",
+                "description": "Self-hosted MCP Gateway - Centralize and manage all your MCP servers from a single endpoint. Web dashboard, API key management, bridge port, deferred boot.",
+                "tagline": "One gateway, all your MCP servers",
+                "version": "2.3.6",
+                "healthCheckPath": "/health",
+                "httpPort": 8080,
+                "addons": {
+                    "postgresql": {},
+                    "localstorage": {},
+                    "proxyAuth": {
+                        "path": "/admin",
+                        "supportsBearerAuth": true
+                    }
+                },
+                "manifestVersion": 2,
+                "website": "https://github.com/jbjardine/mcpjungle-cloudron",
+                "contactEmail": "jb67190@gmail.com",
+                "iconUrl": "https://raw.githubusercontent.com/jbjardine/mcpjungle-cloudron/main/icon.png",
+                "tags": ["ai", "mcp", "gateway"],
+                "minBoxVersion": "9.1.0",
+                "dockerImage": "ghcr.io/jbjardine/mcpjungle-cloudron:v2.3.6",
+                "packagerName": "jbjardine",
+                "packagerUrl": "https://github.com/jbjardine/mcpjungle-cloudron",
+                "mediaLinks": ["https://raw.githubusercontent.com/jbjardine/mcpjungle-cloudron/main/dashboard.png"],
+                "changelog": "* Canonical `/app/data` runtime env for Cloudron and managed stdio servers\n* Fix `doctor` config resolution, registry ownership drift, and register timeout false negatives\n* Patch embedded gateway stdio shutdown so `tools/invoke` no longer hangs on child exit\n",
+                "postInstallMessage": "MCPJungle is ready.\n\nAdmin Dashboard: `https://<your-domain>/admin` (Cloudron SSO)\nGateway: `https://<your-domain>/mcp` (Bearer token)\n\nCreate API keys from the dashboard, then connect Claude Code.\n\nFull docs: https://github.com/jbjardine/mcpjungle-cloudron"
+            },
+            "publishState": "published",
+            "ts": "Sat, 04 Apr 2026 00:00:00 GMT"
+        },
         "2.3.5": {
             "creationDate": "Sun, 30 Mar 2026 22:00:00 GMT",
             "manifest": {
@@ -38,4 +73,3 @@
         }
     }
 }
-

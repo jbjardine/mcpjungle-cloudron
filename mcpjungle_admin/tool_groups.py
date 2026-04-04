@@ -25,6 +25,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from .runtime import load_gateway_settings, runtime_conf_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,10 +55,10 @@ class ToolGroupsManager:
         token = os.environ.get("MCPJUNGLE_ACCESS_TOKEN")
         if token:
             return token
-        config_path = (
-            Path(os.environ.get("MCPJUNGLE_DATA_ROOT", "/app/data"))
-            / ".mcpjungle.conf"
-        )
+        settings = load_gateway_settings()
+        if settings["access_token"]:
+            return settings["access_token"]
+        config_path = runtime_conf_path()
         if not config_path.exists():
             return None
         try:
