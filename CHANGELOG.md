@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Sem
 
 ## [Unreleased]
 
+## [2.3.7] - 2026-04-04
+
+### Fixed
+
+- Build the embedded `mcpjungle` gateway into a dedicated output file before copying it into the final image, so `/usr/local/bin/mcpjungle` is installed as an executable binary instead of a directory.
+- Repair the `2.3.6` release packaging regression that prevented the gateway process from starting on Cloudron.
+
 ## [2.3.6] - 2026-04-04
 
 ### Changed
@@ -230,7 +237,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Sem
 - Rollback-aware reconcile and update flow.
 - Unit tests for registry management, type detection, and reconcile rollback.
 
-[Unreleased]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.6...HEAD
+[Unreleased]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.7...HEAD
+[2.3.7]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.6...v2.3.7
 [2.3.6]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.5...v2.3.6
 [2.3.0]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.2.0...v2.2.1
