@@ -23,12 +23,12 @@ RUN cd /tmp/mcpjungle \
     && git apply /tmp/patches/mcpjungle/0001-stderr-shutdown-log.patch \
     && go mod edit -replace github.com/mark3labs/mcp-go=/tmp/mcp-go \
     && go mod tidy \
-    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /tmp/mcpjungle .
+    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /tmp/mcpjungle-bin .
 
 FROM cloudron/base:4.2.0@sha256:46da2fffb36353ef714f97ae8e962bd2c212ca091108d768ba473078319a47f4
 
 # Build MCPJungle from pinned upstream source so we can carry minimal stdio patches.
-COPY --from=mcpjungle-builder /tmp/mcpjungle /usr/local/bin/mcpjungle
+COPY --from=mcpjungle-builder /tmp/mcpjungle-bin /usr/local/bin/mcpjungle
 
 # Install Python 3, Node.js 20, and uv/uvx for MCP servers
 RUN apt-get update && apt-get install -y --no-install-recommends \
