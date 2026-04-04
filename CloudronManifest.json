@@ -4,7 +4,7 @@
   "author": "MCPJungle Community",
   "description": "Self-hosted MCP Gateway - Centralize and manage all your MCP servers from a single endpoint. Register/deregister MCP servers on the fly.",
   "tagline": "One gateway, all your MCP servers",
-  "version": "2.3.7",
+  "version": "2.3.8",
   "healthCheckPath": "/health",
   "httpPort": 8080,
   "addons": {
@@ -26,7 +26,7 @@
     "gateway"
   ],
   "minBoxVersion": "9.1.0",
-  "dockerImage": "ghcr.io/jbjardine/mcpjungle-cloudron:v2.3.7",
+  "dockerImage": "ghcr.io/jbjardine/mcpjungle-cloudron:v2.3.8",
   "changelog": "file://CHANGELOG.md",
   "postInstallMessage": "MCPJungle is ready.\n\n## Admin Dashboard\n\nManage your MCP servers at: `https://<your-domain>/admin`\n\nProtected by Cloudron SSO - only Cloudron users can access it.\n\n## MCP Gateway\n\nConnect AI clients to: `https://<your-domain>/mcp`\n\nCreate API keys from the dashboard (API Keys tab).\n\n## Connect Claude Code\n\nAdd to `.mcp.json`:\n```\n{\"mcpServers\":{\"mcpjungle\":{\"type\":\"streamable-http\",\"url\":\"https://<your-domain>/mcp\",\"headers\":{\"Authorization\":\"Bearer YOUR_API_KEY\"}}}}\n```\n\nOr with lazy-mcp (~90% token reduction):\n```\nnpx lazy-mcp@latest --config servers.json\n```\n\n## Bridge Port\n\nServers with a bridge port get: `https://<your-domain>/bridge/<name>/`\n\n## Useful Commands\n\n```\nmcpjungle-admin doctor\nmcpjungle-admin list-managed\nmcpjungle-admin reconcile\n```\n\nFull docs: https://github.com/jbjardine/mcpjungle-cloudron"
 }

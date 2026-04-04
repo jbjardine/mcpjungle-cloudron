@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Sem
 
 ## [Unreleased]
 
+## [2.3.8] - 2026-04-04
+
+### Fixed
+
+- Remove and recreate only Cloudron-managed tool groups around boot reconcile so transient deregister/register windows do not spam callback errors for managed group endpoints.
+- Preserve custom tool groups during Cloudron sync while migrating auto-managed groups to a canonical `[cloudron-managed]` description.
+
 ## [2.3.7] - 2026-04-04
 
 ### Fixed
@@ -237,7 +244,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Sem
 - Rollback-aware reconcile and update flow.
 - Unit tests for registry management, type detection, and reconcile rollback.
 
-[Unreleased]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.7...HEAD
+[Unreleased]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.8...HEAD
+[2.3.8]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.7...v2.3.8
 [2.3.7]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.6...v2.3.7
 [2.3.6]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.3.5...v2.3.6
 [2.3.0]: https://github.com/jbjardine/mcpjungle-cloudron/compare/v2.2.1...v2.3.0
