@@ -143,6 +143,10 @@ def build_parser() -> argparse.ArgumentParser:
         "sync-groups",
         help="Synchronize Tool Groups with registered MCP servers",
     )
+    subparsers.add_parser(
+        "prune-managed-groups",
+        help="Delete Cloudron-managed tool groups before boot reconcile",
+    )
 
     gen_lazy_parser = subparsers.add_parser(
         "generate-lazy-config",
@@ -237,6 +241,21 @@ def emit(payload: Any, *, as_json: bool) -> None:
             print(f"{key}: {value}")
         return
     print(payload)
+
+
+def _managed_server_names(
+    registry: ManagedRegistry,
+    *,
+    registered_names: set[str] | None = None,
+) -> set[str]:
+    names = {
+        entry["name"]
+        for entry in registry.list_entries()
+        if entry.get("managed", True)
+    }
+    if registered_names is None:
+        return names
+    return names & registered_names
 
 
 def cmd_install(args: argparse.Namespace) -> int:
@@ -523,7 +542,33 @@ def cmd_sync_groups(args: argparse.Namespace) -> int:
         emit({"error": f"Failed to list servers: {e}"}, as_json=args.json)
         return 1
 
-    summary = manager.sync_tool_groups(sorted(current_configs.keys()))
+    managed_names = _managed_server_names(
+        registry,
+        registered_names=set(current_configs),
+    )
+    summary = manager.sync_tool_groups(
+        sorted(managed_names),
+        managed_names=managed_names,
+    )
+    emit(summary, as_json=args.json)
+    return 0 if not summary["errors"] else 1
+
+
+def cmd_prune_managed_groups(args: argparse.Namespace) -> int:
+    from .tool_groups import ToolGroupsError, ToolGroupsManager
+
+    registry, _, _, _ = build_runtime()
+
+    try:
+        manager = ToolGroupsManager(
+            gateway_url=_resolve_registry_url(),
+        )
+    except ToolGroupsError as e:
+        emit({"error": str(e)}, as_json=args.json)
+        return 1
+
+    managed_names = _managed_server_names(registry)
+    summary = manager.prune_managed_groups(managed_names)
     emit(summary, as_json=args.json)
     return 0 if not summary["errors"] else 1
 
@@ -638,6 +683,7 @@ def main(argv: list[str] | None = None) -> int:
         "doctor": cmd_doctor,
         "auto-update": cmd_auto_update,
         "sync-groups": cmd_sync_groups,
+        "prune-managed-groups": cmd_prune_managed_groups,
         "generate-lazy-config": cmd_generate_lazy_config,
         "creds-set": cmd_creds_set,
         "creds-list": cmd_creds_list,

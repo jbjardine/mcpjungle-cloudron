@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Sem
 
 ## [Unreleased]
 
+### Fixed
+
+- Remove and recreate only Cloudron-managed tool groups around boot reconcile so transient deregister/register windows do not spam callback errors for managed group endpoints.
+- Preserve custom tool groups during Cloudron sync while migrating auto-managed groups to a canonical `[cloudron-managed]` description.
+
 ## [2.3.7] - 2026-04-04
 
 ### Fixed
